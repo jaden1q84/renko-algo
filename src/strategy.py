@@ -43,18 +43,18 @@ class RenkoStrategy:
                 
         return signals
         
-    def backtest(self, renko_data, initial_capital=100000):
+    def backtest(self, renko_data, signals, initial_capital=100000):
         """
         回测策略
         
         Args:
             renko_data (pd.DataFrame): 砖型图数据
+            signals (pd.DataFrame): 交易信号
             initial_capital (float): 初始资金
             
         Returns:
             pd.DataFrame: 回测结果
         """
-        signals = self.calculate_signals(renko_data)
         portfolio = pd.DataFrame(index=renko_data.index)
         portfolio['holdings'] = 0
         portfolio['cash'] = initial_capital
