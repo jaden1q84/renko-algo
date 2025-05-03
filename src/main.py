@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import argparse
 from data_fetcher import DataFetcher
 from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
@@ -50,15 +51,20 @@ def plot_results(renko_data, portfolio_value, signals, symbol):
     plt.show()
 
 def main():
+    # 设置命令行参数
+    parser = argparse.ArgumentParser(description='Renko策略回测程序')
+    parser.add_argument('--token', required=True, help='API访问令牌')
+    parser.add_argument('--symbol', required=True, help='股票代码，例如：688041.SH')
+    parser.add_argument('--start_date', required=True, help='开始日期，格式：YYYY-MM-DD')
+    parser.add_argument('--end_date', required=True, help='结束日期，格式：YYYY-MM-DD')
+    
+    args = parser.parse_args()
+    
     # 初始化数据获取器
-    fetcher = DataFetcher(token='d3a7ac8e53bcf84eee623c02fdf50c87f8eaff131cffba926407d070')
+    fetcher = DataFetcher(token=args.token)
     
     # 获取数据
-    symbol = '688041.SH' # 海光信息
-    start_date = '2024-05-01'
-    end_date = '2025-05-01'
-    
-    df = fetcher.get_historical_data(symbol, start_date, end_date)
+    df = fetcher.get_historical_data(args.symbol, args.start_date, args.end_date)
     if df is None:
         print("无法获取数据")
         return
@@ -66,11 +72,11 @@ def main():
     print(f"获取到{len(df)}条数据")
     
     # 生成Renko数据
-    renko_gen = RenkoGenerator()  # 不再需要设置砖块大小
+    renko_gen = RenkoGenerator()
     renko_data = renko_gen.generate_renko(df)
     
     # 运行策略
-    strategy = RenkoStrategy(buy_trend_length=3, sell_trend_length=3)  # 不再需要设置砖块大小
+    strategy = RenkoStrategy(buy_trend_length=3, sell_trend_length=3)
     signals = strategy.calculate_signals(renko_data)
     portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
     
@@ -84,7 +90,7 @@ def main():
     print(f"收益率: {return_pct:.2f}%")
     
     # 绘制结果
-    plot_results(renko_data, portfolio_value, signals, symbol)
+    plot_results(renko_data, portfolio_value, signals, args.symbol)
 
 if __name__ == "__main__":
     main() 
