@@ -43,10 +43,30 @@ pip install -r requirements.txt
   - 格式：YYYY-MM-DD
   - 示例：`--end_date "2025-05-01"`
 
+- `--renko_mode`: Renko生成模式（可选）
+  - 选择Renko图的生成算法
+  - 可选值：`daily`（基于日线）或`atr`（基于ATR）
+  - 默认值：`daily`
+  - 示例：`--renko_mode "daily"`
+
+- `--atr_period`: ATR周期（可选）
+  - 当使用ATR模式时，设置ATR的计算周期
+  - 默认值：14
+  - 示例：`--atr_period 20`
+
+- `--atr_multiplier`: ATR乘数（可选）
+  - 当使用ATR模式时，设置ATR的乘数
+  - 默认值：1.0
+  - 示例：`--atr_multiplier 1.5`
+
 ### 运行示例
 
 ```bash
-python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "2024-05-01" --end_date "2025-05-01"
+# 使用日线模式
+python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "2024-05-01" --end_date "2025-05-01" --renko_mode "daily"
+
+# 使用ATR模式
+python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "2024-05-01" --end_date "2025-05-01" --renko_mode "atr" --atr_period 14 --atr_multiplier 1.0
 ```
 
 ### 输出说明

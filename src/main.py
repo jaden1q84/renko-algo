@@ -57,6 +57,10 @@ def main():
     parser.add_argument('--symbol', required=True, help='股票代码，例如：688041.SH')
     parser.add_argument('--start_date', required=True, help='开始日期，格式：YYYY-MM-DD')
     parser.add_argument('--end_date', required=True, help='结束日期，格式：YYYY-MM-DD')
+    parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='daily', 
+                       help='Renko生成模式：atr（基于ATR）或daily（基于日线）')
+    parser.add_argument('--atr_period', type=int, default=14, help='ATR周期（仅当renko_mode=atr时有效）')
+    parser.add_argument('--atr_multiplier', type=float, default=1.0, help='ATR乘数（仅当renko_mode=atr时有效）')
     
     args = parser.parse_args()
     
@@ -72,7 +76,9 @@ def main():
     print(f"获取到{len(df)}条数据")
     
     # 生成Renko数据
-    renko_gen = RenkoGenerator()
+    renko_gen = RenkoGenerator(mode=args.renko_mode, 
+                             atr_period=args.atr_period, 
+                             atr_multiplier=args.atr_multiplier)
     renko_data = renko_gen.generate_renko(df)
     
     # 运行策略
