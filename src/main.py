@@ -3,13 +3,32 @@ from data_fetcher import DataFetcher
 from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
 
-def plot_results(renko_data, portfolio_value):
+def plot_results(renko_data, portfolio_value, signals):
     """绘制回测结果"""
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     
     # 绘制Renko图
     ax1.set_title('Renko Chart')
     ax1.plot(renko_data.index, renko_data['close'], 'b-')
+    
+    # 绘制交易信号
+    buy_signals = signals[signals['signal'] == 1]
+    sell_signals = signals[signals['signal'] == -1]
+    
+    # 绘制买入信号（红色上箭头）
+    for date in buy_signals.index:
+        price = renko_data.loc[date, 'close']
+        ax1.annotate('↑', xy=(date, price), xytext=(0, 10),
+                    textcoords='offset points', color='r', fontsize=12,
+                    ha='center', va='bottom')
+    
+    # 绘制卖出信号（绿色下箭头）
+    for date in sell_signals.index:
+        price = renko_data.loc[date, 'close']
+        ax1.annotate('↓', xy=(date, price), xytext=(0, -10),
+                    textcoords='offset points', color='g', fontsize=12,
+                    ha='center', va='top')
+    
     ax1.grid(True)
     
     # 绘制投资组合价值
@@ -37,13 +56,13 @@ def main():
     print(f"获取到{len(df)}条数据")
     
     # 生成Renko数据
-    renko_gen = RenkoGenerator(brick_size=2.0)  # 设置砖块大小为2元
+    renko_gen = RenkoGenerator()  # 不再需要设置砖块大小
     renko_data = renko_gen.generate_renko(df)
     
     # 运行策略
-    strategy = RenkoStrategy(brick_size=2.0, trend_length=5)
+    strategy = RenkoStrategy(trend_length=3)  # 不再需要设置砖块大小
     signals = strategy.calculate_signals(renko_data)
-    portfolio_value = strategy.backtest(renko_data, signals, initial_capital=100000)
+    portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
     
     # 计算收益
     initial_capital = portfolio_value['total'].iloc[0]
@@ -55,7 +74,7 @@ def main():
     print(f"收益率: {return_pct:.2f}%")
     
     # 绘制结果
-    plot_results(renko_data, portfolio_value)
+    plot_results(renko_data, portfolio_value, signals)
 
 if __name__ == "__main__":
     main() 
