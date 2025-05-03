@@ -60,6 +60,16 @@ pip install -r requirements.txt
   - 默认值：1.0
   - 示例：`--atr_multiplier 1.5`
 
+- `--buy_trend_length`: 买入趋势长度（可选）
+  - 设置生成买入信号所需的趋势长度
+  - 默认值：3
+  - 示例：`--buy_trend_length 5`
+
+- `--sell_trend_length`: 卖出趋势长度（可选）
+  - 设置生成卖出信号所需的趋势长度
+  - 默认值：3
+  - 示例：`--sell_trend_length 5`
+
 - `--optimize`: 启用参数优化（可选）
   - 是否启用参数优化功能
   - 启用后将自动测试不同参数组合

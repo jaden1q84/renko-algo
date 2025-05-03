@@ -97,6 +97,8 @@ def main():
                        help='Renko生成模式：atr（基于ATR）或daily（基于日线）')
     parser.add_argument('--atr_period', type=int, default=14, help='ATR周期（仅当renko_mode=atr时有效）')
     parser.add_argument('--atr_multiplier', type=float, default=1.0, help='ATR乘数（仅当renko_mode=atr时有效）')
+    parser.add_argument('--buy_trend_length', type=int, default=3, help='买入信号所需的趋势长度')
+    parser.add_argument('--sell_trend_length', type=int, default=3, help='卖出信号所需的趋势长度')
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
     parser.add_argument('--max_iterations', type=int, default=100, help='最大优化迭代次数')
     
@@ -127,7 +129,8 @@ def main():
                                  atr_multiplier=best_params['atr_multiplier'])
         renko_data = renko_gen.generate_renko(df)
         
-        strategy = RenkoStrategy()
+        strategy = RenkoStrategy(buy_trend_length=args.buy_trend_length,
+                               sell_trend_length=args.sell_trend_length)
         signals = strategy.calculate_signals(renko_data)
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         
@@ -140,7 +143,8 @@ def main():
                                  atr_multiplier=args.atr_multiplier)
         renko_data = renko_gen.generate_renko(df)
         
-        strategy = RenkoStrategy()
+        strategy = RenkoStrategy(buy_trend_length=args.buy_trend_length,
+                               sell_trend_length=args.sell_trend_length)
         signals = strategy.calculate_signals(renko_data)
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         
