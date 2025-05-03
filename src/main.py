@@ -29,16 +29,16 @@ def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None)
     for i in buy_signals.index:
         date = renko_data.iloc[i]['date']
         price = renko_data.iloc[i]['close']
-        ax1.annotate('↑', xy=(date, price), xytext=(0, 10),
-                    textcoords='offset points', color='r', fontsize=12,
+        ax1.annotate(f'↑\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', xy=(date, price), xytext=(0, 5),
+                    textcoords='offset points', color='r', fontsize=7,
                     ha='center', va='bottom')
     
     # 绘制卖出信号（绿色下箭头）
     for i in sell_signals.index:
         date = renko_data.iloc[i]['date']
         price = renko_data.iloc[i]['close']
-        ax1.annotate('↓', xy=(date, price), xytext=(0, -10),
-                    textcoords='offset points', color='g', fontsize=12,
+        ax1.annotate(f'↓\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', xy=(date, price), xytext=(0, -5),
+                    textcoords='offset points', color='g', fontsize=7,
                     ha='center', va='top')
     
     ax1.grid(True)
