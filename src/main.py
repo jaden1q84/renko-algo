@@ -12,7 +12,7 @@ def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None)
     # 绘制Renko图
     title = f'{symbol}'
     if best_params:
-        title += f'\nBest Params: mode={best_params["mode"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
+        title += f'\nBest Params: mode={best_params["mode"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
     ax1.set_title(title)
     ax1.plot(renko_data['date'], renko_data['close'], 'b-')
     
@@ -100,7 +100,7 @@ def main():
     parser.add_argument('--buy_trend_length', type=int, default=3, help='买入信号所需的趋势长度')
     parser.add_argument('--sell_trend_length', type=int, default=3, help='卖出信号所需的趋势长度')
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
-    parser.add_argument('--max_iterations', type=int, default=100, help='最大优化迭代次数')
+    parser.add_argument('--max_iterations', type=int, default=500, help='最大优化迭代次数')
     
     args = parser.parse_args()
     
@@ -124,13 +124,17 @@ def main():
         best_params = optimizer.get_best_parameters()
         
         # 使用最优参数运行回测
+        print("=== 最佳参数 ===")
+        print(f"模式: {best_params['mode']}, ATR周期: {best_params['atr_period']}, ATR倍数: {best_params['atr_multiplier']}, "
+              f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}")
+        print("================")
         renko_gen = RenkoGenerator(mode=best_params['mode'],
                                  atr_period=best_params['atr_period'],
                                  atr_multiplier=best_params['atr_multiplier'])
         renko_data = renko_gen.generate_renko(df)
         
-        strategy = RenkoStrategy(buy_trend_length=args.buy_trend_length,
-                               sell_trend_length=args.sell_trend_length)
+        strategy = RenkoStrategy(buy_trend_length=best_params['buy_trend_length'],
+                               sell_trend_length=best_params['sell_trend_length'])
         signals = strategy.calculate_signals(renko_data)
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         

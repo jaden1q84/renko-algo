@@ -33,36 +33,48 @@ class BacktestOptimizer:
         """
         self.logger.info("开始参数优化...")
         
-        # 测试daily模式
-        self._test_daily_mode()
-        
-        # 测试atr模式的不同参数组合
-        atr_periods = [3, 5, 10, 14, 20, 30]
-        atr_multipliers = [0.5, 1.0, 1.5, 2.0]
+        # 定义参数范围
+        atr_periods = [2, 3, 5, 10]
+        atr_multipliers = [0.2, 0.5, 1.0, 1.5, 2.0]
+        trend_lengths = [2, 3, 5]  # 趋势长度参数范围
         
         iteration_count = 1
-        for period in atr_periods:
-            for multiplier in atr_multipliers:
+        
+        # 测试daily模式的不同趋势长度组合
+        for buy_length in trend_lengths:
+            for sell_length in trend_lengths:
                 if iteration_count > max_iterations:
                     self.logger.info(f"达到最大迭代次数 {max_iterations}，停止优化")
                     break
                     
-                self._test_atr_mode(period, multiplier)
+                self._test_daily_mode(buy_length, sell_length)
                 iteration_count += 1
+        
+        # 测试atr模式的不同参数组合
+        for period in atr_periods:
+            for multiplier in atr_multipliers:
+                for buy_length in trend_lengths:
+                    for sell_length in trend_lengths:
+                        if iteration_count > max_iterations:
+                            self.logger.info(f"达到最大迭代次数 {max_iterations}，停止优化")
+                            break
+                            
+                        self._test_atr_mode(period, multiplier, buy_length, sell_length)
+                        iteration_count += 1
                 
         # 输出优化结果
         self._print_optimization_results()
         
-    def _test_daily_mode(self):
+    def _test_daily_mode(self, buy_trend_length: int, sell_trend_length: int):
         """测试daily模式"""
-        self.logger.info("测试daily模式...")
+        self.logger.info(f"测试daily模式 - 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
         # 生成砖型图
         renko_gen = RenkoGenerator(mode='daily')
         renko_data = renko_gen.generate_renko(self.data)
         
         # 运行策略
-        strategy = RenkoStrategy()
+        strategy = RenkoStrategy(buy_trend_length=buy_trend_length, sell_trend_length=sell_trend_length)
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         
@@ -74,20 +86,23 @@ class BacktestOptimizer:
             'mode': 'daily',
             'atr_period': None,
             'atr_multiplier': None,
+            'buy_trend_length': buy_trend_length,
+            'sell_trend_length': sell_trend_length,
             'return': final_return,
             'portfolio': portfolio
         })
         
-    def _test_atr_mode(self, atr_period: int, atr_multiplier: float):
+    def _test_atr_mode(self, atr_period: int, atr_multiplier: float, buy_trend_length: int, sell_trend_length: int):
         """测试ATR模式"""
-        self.logger.info(f"测试ATR模式 - 周期: {atr_period}, 倍数: {atr_multiplier}")
+        self.logger.info(f"测试ATR模式 - 周期: {atr_period}, 倍数: {atr_multiplier}, "
+                        f"买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
         # 生成砖型图
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier)
         renko_data = renko_gen.generate_renko(self.data)
         
         # 运行策略
-        strategy = RenkoStrategy()
+        strategy = RenkoStrategy(buy_trend_length=buy_trend_length, sell_trend_length=sell_trend_length)
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         
@@ -99,6 +114,8 @@ class BacktestOptimizer:
             'mode': 'atr',
             'atr_period': atr_period,
             'atr_multiplier': atr_multiplier,
+            'buy_trend_length': buy_trend_length,
+            'sell_trend_length': sell_trend_length,
             'return': final_return,
             'portfolio': portfolio
         })
@@ -115,6 +132,7 @@ class BacktestOptimizer:
             mode_str = f"模式: {result['mode']}"
             if result['mode'] == 'atr':
                 mode_str += f", ATR周期: {result['atr_period']}, ATR倍数: {result['atr_multiplier']}"
+            mode_str += f", 买入趋势长度: {result['buy_trend_length']}, 卖出趋势长度: {result['sell_trend_length']}"
                 
             self.logger.info(f"{i}. {mode_str}")
             self.logger.info(f"   收益率: {result['return']:.2%}")
@@ -126,6 +144,8 @@ class BacktestOptimizer:
         if best_result['mode'] == 'atr':
             self.logger.info(f"ATR周期: {best_result['atr_period']}")
             self.logger.info(f"ATR倍数: {best_result['atr_multiplier']}")
+        self.logger.info(f"买入趋势长度: {best_result['buy_trend_length']}")
+        self.logger.info(f"卖出趋势长度: {best_result['sell_trend_length']}")
         self.logger.info(f"收益率: {best_result['return']:.2%}")
         
     def get_best_parameters(self) -> Dict:

@@ -77,7 +77,7 @@ pip install -r requirements.txt
 
 - `--max_iterations`: 最大优化迭代次数（可选）
   - 当启用参数优化时，设置最大测试轮数
-  - 默认值：100
+  - 默认值：500
   - 示例：`--max_iterations 50`
 
 ### 运行示例

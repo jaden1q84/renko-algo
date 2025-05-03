@@ -96,7 +96,8 @@ class RenkoStrategy:
         self.logger.info(f"初始化完成 - 日期: {renko_data.iloc[0]['date'].strftime('%Y-%m-%d')}, "
                          f"现金: {initial_capital:,.2f}, "
                          f"总资产: {initial_capital:,.2f}")
-        
+        buyin_price = 0
+
         for i in range(1, len(renko_data)):
             first_buy = 0
             current_date = portfolio.index[i]
@@ -116,6 +117,7 @@ class RenkoStrategy:
                 portfolio.loc[current_date, 'holdings'] = portfolio.loc[previous_date, 'cash']
                 portfolio.loc[current_date, 'cash'] = 0
                 first_buy = 1
+                buyin_price = current_price
                 # 记录买入日志
                 self.logger.info(f"【执行买入】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
@@ -124,16 +126,18 @@ class RenkoStrategy:
                 # 卖出信号，清仓
                 portfolio.loc[current_date, 'position'] = 0
                 
-                # 计算卖出时的收益
+                # 计算卖出时的日内收益
                 price_change = (current_price - previous_price) / previous_price
                 previous_holdings = portfolio.loc[current_date, 'holdings']
                 portfolio.loc[current_date, 'cash'] = portfolio.loc[previous_date, 'holdings'] * (1 + price_change)
                 portfolio.loc[current_date, 'holdings'] = 0
 
                 # 记录卖出日志
+                trade_return = (current_price - buyin_price) / buyin_price
                 self.logger.info(f"【执行卖出】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
-                               f"现金: {portfolio.loc[current_date, 'cash']:,.2f}")
+                               f"现金: {portfolio.loc[current_date, 'cash']:,.2f}, "
+                               f"本次交易收益率: {trade_return:.2%}")
                 self.logger.debug(f"【卖出当日收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
                                 f"价格变化: {price_change:.2%}, "
