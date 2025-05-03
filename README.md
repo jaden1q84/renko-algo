@@ -117,6 +117,9 @@ python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "
    - 股票价格走势图（包含买卖信号）
    - 投资组合价值变化图
 
+示例输出图表：
+![回测结果示例](example_figure.png)
+
 当启用参数优化时，还会输出：
 1. 所有测试的参数组合及其收益率
 2. 最优参数组合的详细信息
