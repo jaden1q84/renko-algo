@@ -1,0 +1,14 @@
+name: renko-algo
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - pip
+  - ta-lib
+  - pip:
+    - pandas>=1.3.0
+    - numpy>=1.21.0
+    - matplotlib>=3.4.0
+    - yfinance>=0.1.70
+    - backtrader>=1.9.76.123 
