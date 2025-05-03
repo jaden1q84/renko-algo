@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8
+  - python=3.12
   - pip
   - ta-lib
   - pip:
@@ -11,4 +11,5 @@ dependencies:
     - numpy>=1.21.0
     - matplotlib>=3.4.0
     - yfinance>=0.1.70
-    - backtrader>=1.9.76.123 
+    - backtrader>=1.9.76.123
+    - tushare>=1.2.89 
