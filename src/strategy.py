@@ -134,7 +134,7 @@ class RenkoStrategy:
                 self.logger.info(f"【执行卖出】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
                                f"现金: {portfolio.loc[current_date, 'cash']:,.2f}")
-                self.logger.info(f"【卖出当日收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.debug(f"【卖出当日收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
                                 f"价格变化: {price_change:.2%}, "
                                 f"现金变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'cash']:,.2f}")
@@ -145,7 +145,7 @@ class RenkoStrategy:
                 price_change = 0 if first_buy == 1 else (current_price - previous_price) / previous_price
                 previous_holdings = portfolio.loc[current_date, 'holdings']
                 portfolio.loc[current_date, 'holdings'] = portfolio.loc[current_date, 'holdings'] * (1 + price_change)
-                self.logger.info(f"【持仓收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.debug(f"【持仓收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
                                 f"价格变化: {price_change:.2%}, "
                                 f"持仓变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'holdings']:,.2f}")
