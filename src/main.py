@@ -54,8 +54,7 @@ def main():
     fetcher = DataFetcher(token='d3a7ac8e53bcf84eee623c02fdf50c87f8eaff131cffba926407d070')
     
     # 获取数据
-    symbol = '300454.SZ'  # 深信服科技
-    # symbol = '688041.SH' # 海光信息
+    symbol = '688041.SH' # 海光信息
     start_date = '2024-05-01'
     end_date = '2025-05-01'
     
