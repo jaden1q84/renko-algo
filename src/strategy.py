@@ -3,20 +3,24 @@ import numpy as np
 import logging
 
 class RenkoStrategy:
-    def __init__(self, trend_length=3):
+    def __init__(self, buy_trend_length=3, sell_trend_length=3, brick_size=1):
         """
-        初始化砖型图策略
+        初始化Renko策略
         
         Args:
-            trend_length (int): 趋势判断长度
+            brick_size (float): 砖块大小
+            buy_trend_length (int): 买入信号所需的趋势长度
+            sell_trend_length (int): 卖出信号所需的趋势长度
         """
-        self.trend_length = trend_length
+        self.brick_size = brick_size
+        self.buy_trend_length = buy_trend_length
+        self.sell_trend_length = sell_trend_length
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"策略初始化完成 - 趋势判断长度: {trend_length}")
+        self.logger.info(f"策略初始化完成 - 砖块大小: {brick_size}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
     def calculate_signals(self, renko_data):
         """
@@ -33,23 +37,23 @@ class RenkoStrategy:
         signals['signal'] = 0
         
         # 计算趋势
-        trend = renko_data['trend'].rolling(self.trend_length).sum()
+        trend = renko_data['trend'].rolling(max(self.buy_trend_length, self.sell_trend_length)).sum()
         self.logger.info(f"趋势计算完成，数据长度: {len(trend)}")
         
         # 生成交易信号
         position = 0  # 0表示空仓，1表示多仓
-        for i in range(self.trend_length, len(renko_data)):
+        for i in range(max(self.buy_trend_length, self.sell_trend_length), len(renko_data)):
             current_trend = trend[i]
             current_price = renko_data.iloc[i]['close']
             
-            if current_trend >= self.trend_length and position == 0:
+            if current_trend >= self.buy_trend_length and position == 0:
                 # 上升趋势，买入信号
                 signals.iloc[i] = 1
                 position = 1
                 self.logger.info(f"生成买入信号 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"价格: {current_price:.2f}, "
                                 f"趋势值: {current_trend:.2f}")
-            elif current_trend <= -self.trend_length and position == 1:
+            elif current_trend <= -self.sell_trend_length and position == 1:
                 # 下降趋势，卖出信号
                 signals.iloc[i] = -1
                 position = 0

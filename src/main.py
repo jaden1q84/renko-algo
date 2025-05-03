@@ -45,8 +45,9 @@ def main():
     
     # 获取数据
     symbol = '300454.SZ'  # 深信服科技
-    start_date = '2024-01-01'
-    end_date = '2024-12-31'
+    # symbol = '688041.SH' # 海光信息
+    start_date = '2024-05-01'
+    end_date = '2025-05-01'
     
     df = fetcher.get_historical_data(symbol, start_date, end_date)
     if df is None:
@@ -60,7 +61,7 @@ def main():
     renko_data = renko_gen.generate_renko(df)
     
     # 运行策略
-    strategy = RenkoStrategy(trend_length=3)  # 不再需要设置砖块大小
+    strategy = RenkoStrategy(buy_trend_length=3, sell_trend_length=3)  # 不再需要设置砖块大小
     signals = strategy.calculate_signals(renko_data)
     portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
     
