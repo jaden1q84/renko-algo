@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import argparse
+import os
 from data_fetcher import DataFetcher
 from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
@@ -83,8 +84,16 @@ def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None)
     plt.xticks(rotation=45)
     ax2.grid(True)
     
+    # 创建data目录（如果不存在）
+    if not os.path.exists('data'):
+        os.makedirs('data')
+    
+    # 生成文件名
+    file_name = f"data/{symbol}_{args.start_date}_{args.end_date}.png"
+    
+    # 保存图片
     plt.tight_layout()
-    plt.show()
+    plt.savefig(file_name)
 
 def main():
     # 设置命令行参数
@@ -102,6 +111,7 @@ def main():
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
     parser.add_argument('--max_iterations', type=int, default=500, help='最大优化迭代次数')
     
+    global args
     args = parser.parse_args()
     
     # 初始化数据获取器
