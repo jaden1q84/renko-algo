@@ -36,6 +36,7 @@ class RenkoStrategy:
         """
         self.logger.info("开始计算交易信号...")
         signals = pd.DataFrame(index=renko_data.index)
+        signals['index'] = renko_data['index']
         signals['date'] = renko_data['date']
         signals['signal'] = 0
         

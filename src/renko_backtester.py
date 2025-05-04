@@ -58,7 +58,7 @@ class RenkoBacktester:
                                  atr_multiplier=params['atr_multiplier'],
                                  symbol=self.args.symbol)
         renko_data = renko_gen.generate_renko(df)
-        params['brick_size'] = round(renko_gen.get_brick_size(), 1)
+        params['brick_size'] = round(renko_gen.get_brick_size(), 1) if params['mode'] == 'atr' else None
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
                                sell_trend_length=params['sell_trend_length'],

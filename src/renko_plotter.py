@@ -43,29 +43,48 @@ class RenkoPlotter:
         mpf.plot(df, type='candle', volume=False, show_nontrading=False, ax=ax, style=style)
         
         self._format_date_axis(ax)
-    
+
     def _plot_signals(self, ax, renko_data, signals):
         """绘制交易信号"""
         buy_signals = signals[signals['signal'] == 1]
         sell_signals = signals[signals['signal'] == -1]
         
+        # 绘制买入信号
         for i in buy_signals.index:
-            self._plot_signal(ax, renko_data, i, '↑', 'r', 5)
+            date = renko_data.iloc[i]['date']
+            price = renko_data.iloc[i]['close']
+            # 将标记点向上移动5%
+            offset_price = price * 1.07
+            ax.scatter(i, offset_price, color='red', marker='^')
+            ax.annotate(f'B\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
+                       xy=(i, offset_price),
+                       xytext=(0, 10),
+                       textcoords='offset points',
+                       ha='center',
+                       va='bottom',
+                       color='red',
+                       fontsize=7)
+        
+        # 绘制卖出信号
         for i in sell_signals.index:
-            self._plot_signal(ax, renko_data, i, '↓', 'g', -5)
-    
-    def _plot_signal(self, ax, renko_data, idx, symbol, color, offset):
-        """绘制单个交易信号"""
-        date = renko_data.iloc[idx]['date']
-        price = renko_data.iloc[idx]['close']
-        ax.annotate(f'{symbol}\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
-                   xy=(date, price), 
-                   xytext=(0, offset),
-                   textcoords='offset points', 
-                   color=color, 
-                   fontsize=7,
-                   ha='center', 
-                   va='bottom' if offset > 0 else 'top')
+            date = renko_data.iloc[i]['date']
+            price = renko_data.iloc[i]['close']
+            # 将标记点向上移动5%
+            offset_price = price * 1.07
+            ax.scatter(i, offset_price, color='green', marker='v')
+            ax.annotate(f'S\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
+                       xy=(i, offset_price),
+                       xytext=(0, 10),
+                       textcoords='offset points',
+                       ha='center',
+                       va='bottom',
+                       color='green',
+                       fontsize=7)
+        
+        # 添加图例
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            ax.legend(handles, labels, loc='upper left')
     
     def _plot_portfolio_value(self, ax, portfolio_value, symbol):
         """绘制投资组合价值"""
