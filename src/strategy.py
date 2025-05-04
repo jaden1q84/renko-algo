@@ -86,6 +86,7 @@ class RenkoStrategy:
         """
         self.logger.info(f"开始回测 - 初始资金: {initial_capital:,.2f}")
         portfolio = pd.DataFrame(index=renko_data.index)
+        portfolio['date'] = renko_data['date']  # 添加日期列
         portfolio['holdings'] = 0.0  # 持仓市值
         portfolio['cash'] = 0.0  # 现金
         portfolio['total'] = 0.0  # 总资产
@@ -95,7 +96,7 @@ class RenkoStrategy:
         portfolio.loc[portfolio.index[0], 'cash'] = initial_capital
         portfolio.loc[portfolio.index[0], 'total'] = initial_capital
         portfolio.loc[portfolio.index[0], 'position'] = 0
-        self.logger.info(f"初始化完成 - 日期: {renko_data.iloc[0]['date'].strftime('%Y-%m-%d')}, "
+        self.logger.info(f"初始化完成 - 日期: {portfolio.iloc[0]['date'].strftime('%Y-%m-%d')}, "
                          f"现金: {initial_capital:,.2f}, "
                          f"总资产: {initial_capital:,.2f}")
         buyin_price = 0
@@ -121,7 +122,7 @@ class RenkoStrategy:
                 first_buy = 1
                 buyin_price = current_price
                 # 记录买入日志
-                self.logger.info(f"【执行买入】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.info(f"【执行买入】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
                                f"持仓市值: {portfolio.loc[current_date, 'holdings']:,.2f}")
             elif signals.loc[current_date, 'signal'] == -1 and portfolio.loc[previous_date, 'position'] == 1:
@@ -136,11 +137,11 @@ class RenkoStrategy:
 
                 # 记录卖出日志
                 trade_return = (current_price - buyin_price) / buyin_price
-                self.logger.info(f"【执行卖出】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.info(f"【执行卖出】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
                                f"现金: {portfolio.loc[current_date, 'cash']:,.2f}, "
                                f"本次交易收益率: {trade_return:.2%}")
-                self.logger.debug(f"【卖出当日收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.debug(f"【卖出当日收益】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
                                 f"价格变化: {price_change:.2%}, "
                                 f"现金变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'cash']:,.2f}")
@@ -151,7 +152,7 @@ class RenkoStrategy:
                 price_change = 0 if first_buy == 1 else (current_price - previous_price) / previous_price
                 previous_holdings = portfolio.loc[current_date, 'holdings']
                 portfolio.loc[current_date, 'holdings'] = portfolio.loc[current_date, 'holdings'] * (1 + price_change)
-                self.logger.debug(f"【持仓收益】 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.debug(f"【持仓收益】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
                                 f"价格变化: {price_change:.2%}, "
                                 f"持仓变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'holdings']:,.2f}")
@@ -164,8 +165,8 @@ class RenkoStrategy:
         self.logger.info(f"回测完成 - 最终总资产: {portfolio.iloc[-1]['total']:,.2f}, "
                         f"总收益率: {final_return:.2%}")
         # 将portfolio保存成CSV文件
-        start_date = renko_data.iloc[0]['date'].strftime('%Y%m%d')
-        end_date = renko_data.iloc[-1]['date'].strftime('%Y%m%d')
+        start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
+        end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
         file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
         portfolio.to_csv(file_name, index=True)
         self.logger.info(f"投资组合已保存至: {file_name}")
