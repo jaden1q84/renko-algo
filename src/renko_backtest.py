@@ -31,7 +31,7 @@ class RenkoBacktest:
         """绘制K线图表"""
         title = f'{symbol}'
         if best_params:
-            title += f'\nBest Params: mode={best_params["mode"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
+            title += f'\nBest Params: mode={best_params["mode"]}, brick_size={best_params["brick_size"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
         ax.set_title(title)
         
         # 准备K线图数据
@@ -164,7 +164,8 @@ class RenkoBacktest:
             'atr_period': self.args.atr_period,
             'atr_multiplier': self.args.atr_multiplier,
             'buy_trend_length': self.args.buy_trend_length,
-            'sell_trend_length': self.args.sell_trend_length
+            'sell_trend_length': self.args.sell_trend_length,
+            'brick_size': None
         }
         
         self._run_backtest_with_params(df, params, showout=not self.args.batch)
@@ -175,6 +176,7 @@ class RenkoBacktest:
                                  atr_period=params['atr_period'],
                                  atr_multiplier=params['atr_multiplier'])
         renko_data = renko_gen.generate_renko(df)
+        params['brick_size'] = round(renko_gen.get_brick_size(), 1)
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
                                sell_trend_length=params['sell_trend_length'])

@@ -16,6 +16,7 @@ class RenkoGenerator:
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.renko_data = pd.DataFrame(columns=['date', 'open', 'high', 'low', 'close', 'trend'])
+        self.brick_size = None
         
     def _calculate_atr(self, data: pd.DataFrame) -> float:
         """
@@ -108,15 +109,15 @@ class RenkoGenerator:
         """
         renko_data = []
         current_price = data['Close'].iloc[0]
-        brick_size = self._calculate_atr(data)
-        print(f"ATR计算的砖块大小为: {brick_size:.2f}")
+        self.brick_size = self._calculate_atr(data)
+        print(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
 
         for i in range(1, len(data)):
             price = data['Close'].iloc[i]
             price_change = price - current_price
             
             # 计算需要多少个砖块
-            num_bricks = abs(int(price_change / brick_size))
+            num_bricks = abs(int(price_change / self.brick_size))
             
             if num_bricks > 0:
                 direction = 1 if price_change > 0 else -1
@@ -125,22 +126,31 @@ class RenkoGenerator:
                         renko_data.append({
                             'date': data.index[i],
                             'open': current_price,
-                            'high': current_price + brick_size,
+                            'high': current_price + self.brick_size,
                             'low': current_price,
-                            'close': current_price + brick_size,
+                            'close': current_price + self.brick_size,
                             'trend': 1
                         })
-                        current_price += brick_size
+                        current_price += self.brick_size
                     else:
                         renko_data.append({
                             'date': data.index[i],
                             'open': current_price,
                             'high': current_price,
-                            'low': current_price - brick_size,
-                            'close': current_price - brick_size,
+                            'low': current_price - self.brick_size,
+                            'close': current_price - self.brick_size,
                             'trend': -1
                         })
-                        current_price -= brick_size
+                        current_price -= self.brick_size
                         
         self.renko_data = pd.DataFrame(renko_data)
-        return self.renko_data 
+        return self.renko_data
+        
+    def get_brick_size(self) -> float:
+        """
+        获取当前砖块大小
+        
+        Returns:
+            float: 砖块大小
+        """
+        return self.brick_size 
