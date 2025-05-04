@@ -93,6 +93,39 @@ python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "
 python src/main.py --token "your_token_here" --symbol "688041.SH" --start_date "2024-05-01" --end_date "2025-05-01" --optimize --max_iterations 100
 ```
 
+### 批量测试说明
+
+系统提供了批量测试功能，可以同时对多个股票进行回测。使用方法如下：
+
+1. 编辑 `batch_test.sh` 文件中的股票列表：
+```bash
+SYMBOLS=(
+    "688041.SH"
+    "688981.SH"
+    "603986.SH"
+    # ... 添加更多股票代码
+)
+```
+
+2. 运行批量测试脚本：
+```bash
+# 基本用法
+./batch_test.sh -t "your_token_here"
+
+# 指定日期范围
+./batch_test.sh -t "your_token_here" -s "2024-05-01" -e "2025-05-01"
+```
+
+参数说明：
+- `-t`: API访问令牌（必需）
+- `-s`: 开始日期（可选，默认：2025-01-01）
+- `-e`: 结束日期（可选，默认：2025-05-01）
+
+注意事项：
+- 所有回测任务会在后台并发运行
+- 日志文件将保存在 `logs` 目录下，每个股票对应一个日志文件
+- 建议根据系统资源情况调整并发数量
+
 ### 参数优化说明
 
 当启用参数优化时，系统会：

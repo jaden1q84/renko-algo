@@ -6,7 +6,7 @@ from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
 from backtest_optimizer import BacktestOptimizer
 
-def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None):
+def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None, showout=1):
     """绘制回测结果"""
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
     
@@ -94,6 +94,10 @@ def plot_results(renko_data, portfolio_value, signals, symbol, best_params=None)
     # 保存图片
     plt.tight_layout()
     plt.savefig(file_name)
+    
+    # 根据showout参数决定是否显示图片
+    if showout:
+        plt.show()
 
 def main():
     # 设置命令行参数
@@ -110,6 +114,7 @@ def main():
     parser.add_argument('--sell_trend_length', type=int, default=3, help='卖出信号所需的趋势长度')
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
     parser.add_argument('--max_iterations', type=int, default=500, help='最大优化迭代次数')
+    parser.add_argument('--batch', action='store_true', help='是否以批处理模式运行（不显示图形）')
     
     global args
     args = parser.parse_args()
@@ -149,7 +154,7 @@ def main():
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         
         # 绘制结果
-        plot_results(renko_data, portfolio_value, signals, args.symbol, best_params)
+        plot_results(renko_data, portfolio_value, signals, args.symbol, best_params, showout=not args.batch)
     else:
         # 使用指定参数运行回测
         renko_gen = RenkoGenerator(mode=args.renko_mode, 
@@ -172,7 +177,7 @@ def main():
         print(f"收益率: {return_pct:.2f}%")
         
         # 绘制结果
-        plot_results(renko_data, portfolio_value, signals, args.symbol)
+        plot_results(renko_data, portfolio_value, signals, args.symbol, showout=not args.batch)
 
 if __name__ == "__main__":
     main() 

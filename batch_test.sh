@@ -35,12 +35,13 @@ mkdir -p logs
 # 并发运行回测
 for SYMBOL in "${SYMBOLS[@]}"; do
     # 使用nohup在后台运行，并将输出重定向到日志文件
-    python src/main.py \
+    nohup python src/main.py \
         --token "$TOKEN" \
         --symbol "$SYMBOL" \
         --start_date "$START_DATE" \
         --end_date "$END_DATE" \
-        --optimize > "logs/${SYMBOL}.log" 2>&1 &
+        --optimize > "logs/${SYMBOL}.log" \
+        --batch 2>&1 &
 done
 
 echo "所有回测任务已启动，请查看logs目录下的日志文件" 
