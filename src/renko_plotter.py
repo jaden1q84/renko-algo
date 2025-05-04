@@ -28,7 +28,7 @@ class RenkoPlotter:
         """绘制K线图表"""
         title = f'{symbol}'
         if best_params:
-            title += f'\nBest Params: mode={best_params["mode"]}, brick_size={best_params["brick_size"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
+            title += f'\nBest Params: mode={best_params["mode"]}, brick_size=¥{best_params["brick_size"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
         ax.set_title(title)
         
         # 准备K线图数据

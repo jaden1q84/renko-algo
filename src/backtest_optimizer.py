@@ -127,7 +127,7 @@ class BacktestOptimizer:
         
     def _print_optimization_results(self):
         """输出优化结果"""
-        self.logger.info("\n优化结果汇总:")
+        self.logger.info("优化结果汇总:")
         self.logger.info("-" * 80)
         
         # 按收益率排序
@@ -144,7 +144,7 @@ class BacktestOptimizer:
             
         # 输出最优参数
         best_result = sorted_results[0]
-        self.logger.info("\n最优参数组合:")
+        self.logger.info("最优参数组合:")
         self.logger.info(f"模式: {best_result['mode']}")
         if best_result['mode'] == 'atr':
             self.logger.info(f"ATR周期: {best_result['atr_period']}")

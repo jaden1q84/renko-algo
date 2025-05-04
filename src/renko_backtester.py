@@ -3,22 +3,28 @@ from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
 from backtest_optimizer import BacktestOptimizer
 from renko_plotter import RenkoPlotter
+import logging
 
 class RenkoBacktester:
     def __init__(self, args):
         self.args = args
         self.fetcher = DataFetcher(token=args.token)
         self.plotter = RenkoPlotter()
+        # 配置日志
+        logging.basicConfig(level=logging.INFO,
+                          format='%(asctime)s - %(levelname)s - %(message)s',
+                          datefmt='%Y-%m-%d %H:%M:%S')
+        self.logger = logging.getLogger(__name__)
         
     def run_backtest(self):
         """运行回测"""
         # 获取数据
         df = self.fetcher.get_historical_data(self.args.symbol, self.args.start_date, self.args.end_date)
         if df is None:
-            print("无法获取数据")
+            self.logger.error("无法获取数据")
             return
         
-        print(f"获取到{len(df)}条数据")
+        self.logger.info(f"获取到{len(df)}条数据")
         
         if self.args.optimize:
             self._run_optimized_backtest(df)
@@ -31,10 +37,11 @@ class RenkoBacktester:
         optimizer.run_optimization(max_iterations=self.args.max_iterations)
         best_params = optimizer.get_best_parameters()
         
-        print("=== 最佳参数 ===")
-        print(f"模式: {best_params['mode']}, ATR周期: {best_params['atr_period']}, ATR倍数: {best_params['atr_multiplier']}, "
-              f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}")
-        print("================")
+        self.logger.info("=== 最佳参数 ===")
+        self.logger.info(f"模式: {best_params['mode']}, ATR周期: {best_params['atr_period']}, ATR倍数: {best_params['atr_multiplier']}, "
+                    f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}\n"
+                    f"--renko_mode {best_params['mode']} --atr_period {best_params['atr_period']} --atr_multiplier {best_params['atr_multiplier']} --buy_trend_length {best_params['buy_trend_length']} --sell_trend_length {best_params['sell_trend_length']}")
+        self.logger.info("================")
         
         self._run_backtest_with_params(df, best_params, showout=not self.args.batch)
     
@@ -71,9 +78,10 @@ class RenkoBacktester:
         final_capital = portfolio_value['total'].iloc[-1]
         return_pct = (final_capital - initial_capital) / initial_capital * 100
         
-        print(f"初始资金: {initial_capital:.2f}")
-        print(f"最终资金: {final_capital:.2f}")
-        print(f"收益率: {return_pct:.2f}%")
+        self.logger.info(f"回测参数：--renko_mode {params['mode']} --atr_period {params['atr_period']} --atr_multiplier {params['atr_multiplier']} --buy_trend_length {params['buy_trend_length']} --sell_trend_length {params['sell_trend_length']}")
+        self.logger.info(f"初始资金: {initial_capital:.2f}")
+        self.logger.info(f"最终资金: {final_capital:.2f}")
+        self.logger.info(f"收益率: {return_pct:.2f}%")
         
         # 使用绘图器绘制结果
         self.plotter.plot_results(renko_data, portfolio_value, signals, self.args.symbol, params, showout) 
