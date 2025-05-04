@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 class RenkoStrategy:
-    def __init__(self, buy_trend_length=3, sell_trend_length=3, brick_size=1):
+    def __init__(self, buy_trend_length=3, sell_trend_length=3, brick_size=1, symbol=None):
         """
         初始化Renko策略
         
@@ -11,16 +11,18 @@ class RenkoStrategy:
             brick_size (float): 砖块大小
             buy_trend_length (int): 买入信号所需的趋势长度
             sell_trend_length (int): 卖出信号所需的趋势长度
+            symbol (str): 股票代码
         """
         self.brick_size = brick_size
         self.buy_trend_length = buy_trend_length
         self.sell_trend_length = sell_trend_length
+        self.symbol = symbol
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"策略初始化完成 - 砖块大小: {brick_size}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
+        self.logger.info(f"策略初始化完成 - 股票代码: {symbol}, 砖块大小: {brick_size}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
     def calculate_signals(self, renko_data):
         """
@@ -161,5 +163,11 @@ class RenkoStrategy:
         final_return = (portfolio.iloc[-1]['total'] - initial_capital) / initial_capital
         self.logger.info(f"回测完成 - 最终总资产: {portfolio.iloc[-1]['total']:,.2f}, "
                         f"总收益率: {final_return:.2%}")
-                
+        # 将portfolio保存成CSV文件
+        start_date = renko_data.iloc[0]['date'].strftime('%Y%m%d')
+        end_date = renko_data.iloc[-1]['date'].strftime('%Y%m%d')
+        file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
+        portfolio.to_csv(file_name, index=True)
+        self.logger.info(f"投资组合已保存至: {file_name}")
+        
         return portfolio 

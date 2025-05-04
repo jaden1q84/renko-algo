@@ -3,7 +3,7 @@ import numpy as np
 from typing import Literal
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5):
+    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None):
         """
         初始化砖型图生成器
         
@@ -11,10 +11,12 @@ class RenkoGenerator:
             mode (str): 生成模式，'daily'表示基于日K线，'atr'表示基于ATR
             atr_period (int): ATR计算周期
             atr_multiplier (float): ATR倍数，用于调整砖块大小
+            symbol (str): 股票代码
         """
         self.mode = mode
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
+        self.symbol = symbol
         self.renko_data = pd.DataFrame(columns=['date', 'open', 'high', 'low', 'close', 'trend'])
         self.brick_size = None
         
@@ -144,6 +146,13 @@ class RenkoGenerator:
                         current_price -= self.brick_size
                         
         self.renko_data = pd.DataFrame(renko_data)
+
+        start_date = self.renko_data.iloc[0]['date'].strftime('%Y%m%d')
+        end_date = self.renko_data.iloc[-1]['date'].strftime('%Y%m%d')
+        file_name = f"data/renko_data-{self.symbol}-{start_date}-{end_date}.csv"
+        self.renko_data.to_csv(file_name, index=False)
+        print(f"砖型图数据已保存至: {file_name}")
+        
         return self.renko_data
         
     def get_brick_size(self) -> float:

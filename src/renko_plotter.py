@@ -78,7 +78,12 @@ class RenkoPlotter:
         self._annotate_portfolio_point(ax, renko_data, portfolio_value, max_idx, 'Max', 'yellow')
         self._annotate_portfolio_point(ax, renko_data, portfolio_value, last_idx, 'Final', 'lightblue')
         
-        self._format_date_axis(ax)
+        #self._format_date_axis(ax)
+        """格式化日期轴"""
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m-%d'))
+        ax.xaxis.set_major_locator(plt.matplotlib.dates.AutoDateLocator())
+        plt.xticks(rotation=45)
+        ax.grid(True)
     
     def _annotate_portfolio_point(self, ax, renko_data, portfolio_value, idx, label, color):
         """标注投资组合的关键点"""

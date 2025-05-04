@@ -55,12 +55,14 @@ class RenkoBacktester:
         """使用指定参数运行回测"""
         renko_gen = RenkoGenerator(mode=params['mode'],
                                  atr_period=params['atr_period'],
-                                 atr_multiplier=params['atr_multiplier'])
+                                 atr_multiplier=params['atr_multiplier'],
+                                 symbol=self.args.symbol)
         renko_data = renko_gen.generate_renko(df)
         params['brick_size'] = round(renko_gen.get_brick_size(), 1)
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
-                               sell_trend_length=params['sell_trend_length'])
+                               sell_trend_length=params['sell_trend_length'],
+                               symbol=self.args.symbol)
         signals = strategy.calculate_signals(renko_data)
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         
