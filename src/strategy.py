@@ -68,11 +68,11 @@ class RenkoStrategy:
                 signals.loc[signals.index[i], 'signal'] = 0
         
         # 将signals保存成CSV文件
-        start_date = signals.iloc[0]['date'].strftime('%Y%m%d')
-        end_date = signals.iloc[-1]['date'].strftime('%Y%m%d')
-        file_name = f"data/signals-{self.symbol}-{start_date}-{end_date}.csv"
-        signals.to_csv(file_name, index=False)
-        self.logger.info(f"交易信号已保存至: {file_name}") 
+        # start_date = signals.iloc[0]['date'].strftime('%Y%m%d')
+        # end_date = signals.iloc[-1]['date'].strftime('%Y%m%d')
+        # file_name = f"data/signals-{self.symbol}-{start_date}-{end_date}.csv"
+        # signals.to_csv(file_name, index=False)
+        # self.logger.info(f"交易信号已保存至: {file_name}") 
         return signals
         
     def backtest(self, renko_data, signals, initial_capital=1000000):
@@ -181,10 +181,10 @@ class RenkoStrategy:
         self.logger.info(f"回测完成 - 最终总资产: {portfolio.iloc[-1]['total']:,.2f}, "
                         f"总收益率: {final_return:.2%}")
         # 将portfolio保存成CSV文件
-        start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
-        end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
-        file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
-        portfolio.to_csv(file_name, index=False)
-        self.logger.info(f"投资组合已保存至: {file_name}")
+        # start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
+        # end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
+        # file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
+        # portfolio.to_csv(file_name, index=False)
+        # self.logger.info(f"投资组合已保存至: {file_name}")
         
         return portfolio 
