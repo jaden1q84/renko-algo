@@ -1,5 +1,5 @@
 import argparse
-from renko_backtest import RenkoBacktest
+from renko_backtester import RenkoBacktester
 
 def parse_arguments():
     """解析命令行参数"""
@@ -22,8 +22,8 @@ def parse_arguments():
 def main():
     """主函数"""
     args = parse_arguments()
-    backtest = RenkoBacktest(args)
-    backtest.run_backtest()
+    backtester = RenkoBacktester(args)
+    backtester.run_backtest()
 
 if __name__ == "__main__":
     main() 
