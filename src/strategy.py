@@ -36,6 +36,7 @@ class RenkoStrategy:
         """
         self.logger.info("开始计算交易信号...")
         signals = pd.DataFrame(index=renko_data.index)
+        signals['date'] = renko_data['date']
         signals['signal'] = 0
         
         # 计算趋势
@@ -50,26 +51,27 @@ class RenkoStrategy:
             
             if current_trend >= self.buy_trend_length and position == 0:
                 # 上升趋势，买入信号
-                signals.iloc[i] = 1
+                signals.loc[signals.index[i], 'signal'] = 1
                 position = 1
                 self.logger.info(f"生成买入信号 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"价格: {current_price:.2f}, "
                                 f"趋势值: {current_trend:.2f}")
             elif current_trend <= -self.sell_trend_length and position == 1:
                 # 下降趋势，卖出信号
-                signals.iloc[i] = -1
+                signals.loc[signals.index[i], 'signal'] = -1
                 position = 0
                 self.logger.info(f"生成卖出信号 - 日期: {renko_data.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"价格: {current_price:.2f}, "
                                 f"趋势值: {current_trend:.2f}")
             else:
-                signals.iloc[i] = 0
-                
-        # 统计信号数量
-        buy_signals = (signals['signal'] == 1).sum()
-        sell_signals = (signals['signal'] == -1).sum()
-        self.logger.info(f"信号计算完成 - 买入信号: {buy_signals}, 卖出信号: {sell_signals}")
-                
+                signals.loc[signals.index[i], 'signal'] = 0
+        
+        # 将signals保存成CSV文件
+        start_date = signals.iloc[0]['date'].strftime('%Y%m%d')
+        end_date = signals.iloc[-1]['date'].strftime('%Y%m%d')
+        file_name = f"data/signals-{self.symbol}-{start_date}-{end_date}.csv"
+        signals.to_csv(file_name, index=False)
+        self.logger.info(f"交易信号已保存至: {file_name}") 
         return signals
         
     def backtest(self, renko_data, signals, initial_capital=1000000):
