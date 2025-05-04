@@ -3,7 +3,7 @@ import numpy as np
 from typing import Literal
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 14, atr_multiplier: float = 1.0):
+    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5):
         """
         初始化砖型图生成器
         
@@ -109,7 +109,8 @@ class RenkoGenerator:
         renko_data = []
         current_price = data['Close'].iloc[0]
         brick_size = self._calculate_atr(data)
-        
+        print(f"ATR计算的砖块大小为: {brick_size:.2f}")
+
         for i in range(1, len(data)):
             price = data['Close'].iloc[i]
             price_change = price - current_price

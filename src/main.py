@@ -10,8 +10,8 @@ def parse_arguments():
     parser.add_argument('--end_date', required=True, help='结束日期，格式：YYYY-MM-DD')
     parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='daily', 
                        help='Renko生成模式：atr（基于ATR）或daily（基于日线）')
-    parser.add_argument('--atr_period', type=int, default=14, help='ATR周期（仅当renko_mode=atr时有效）')
-    parser.add_argument('--atr_multiplier', type=float, default=1.0, help='ATR乘数（仅当renko_mode=atr时有效）')
+    parser.add_argument('--atr_period', type=int, default=10, help='ATR周期（仅当renko_mode=atr时有效）')
+    parser.add_argument('--atr_multiplier', type=float, default=0.5, help='ATR乘数（仅当renko_mode=atr时有效）')
     parser.add_argument('--buy_trend_length', type=int, default=3, help='买入信号所需的趋势长度')
     parser.add_argument('--sell_trend_length', type=int, default=3, help='卖出信号所需的趋势长度')
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')

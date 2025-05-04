@@ -41,8 +41,8 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 - `--start_date`: 开始日期（必需）
 - `--end_date`: 结束日期（必需）
 - `--renko_mode`: Renko生成模式（可选，默认daily）
-- `--atr_period`: ATR周期（可选，默认14）
-- `--atr_multiplier`: ATR乘数（可选，默认1.0）
+- `--atr_period`: ATR周期（可选，默认10）
+- `--atr_multiplier`: ATR乘数（可选，默认0.5）
 - `--buy_trend_length`: 买入信号所需的趋势长度（可选，默认3）
 - `--sell_trend_length`: 卖出信号所需的趋势长度（可选，默认3）
 - `--optimize`: 是否进行参数优化（可选）
