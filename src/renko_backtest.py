@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+import mplfinance as mpf
 import os
+import pandas as pd
 from data_fetcher import DataFetcher
 from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
@@ -25,14 +28,24 @@ class RenkoBacktest:
         self._save_and_show_plot(symbol, showout)
     
     def _plot_renko_chart(self, ax, renko_data, symbol, best_params):
-        """绘制Renko图表"""
+        """绘制K线图表"""
         title = f'{symbol}'
         if best_params:
             title += f'\nBest Params: mode={best_params["mode"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
         ax.set_title(title)
-        ax.plot(renko_data['date'], renko_data['close'], 'b-')
+        
+        # 准备K线图数据
+        df = renko_data.copy()
+        df['date'] = pd.to_datetime(df['date'])
+        df.set_index('date', inplace=True)
+        
+        # 设置红涨绿跌的样式
+        style = mpf.make_mpf_style(marketcolors=mpf.make_marketcolors(up='r', down='g', edge='inherit', wick='inherit', volume='inherit'))
+        
+        # 绘制K线图
+        mpf.plot(df, type='candle', volume=False, show_nontrading=False, ax=ax, style=style)
+        
         self._format_date_axis(ax)
-        ax.grid(True)
     
     def _plot_signals(self, ax, renko_data, signals):
         """绘制交易信号"""
@@ -69,7 +82,10 @@ class RenkoBacktest:
         self._annotate_portfolio_point(ax, renko_data, portfolio_value, max_idx, 'Max', 'yellow')
         self._annotate_portfolio_point(ax, renko_data, portfolio_value, last_idx, 'Final', 'lightblue')
         
-        self._format_date_axis(ax)
+        """格式化日期轴"""
+        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m-%d'))
+        ax.xaxis.set_major_locator(plt.matplotlib.dates.AutoDateLocator())
+        plt.xticks(rotation=45)
         ax.grid(True)
     
     def _annotate_portfolio_point(self, ax, renko_data, portfolio_value, idx, label, color):
@@ -90,9 +106,16 @@ class RenkoBacktest:
     
     def _format_date_axis(self, ax):
         """格式化日期轴"""
-        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m-%d'))
-        ax.xaxis.set_major_locator(plt.matplotlib.dates.AutoDateLocator())
-        plt.xticks(rotation=45)
+        # 获取当前图表的数据
+        lines = ax.get_lines()
+        if lines:
+            x_data = lines[0].get_xdata()
+            if len(x_data) > 0:
+                # 设置X轴刻度为日期
+                ax.set_xticks(x_data)
+                ax.set_xticklabels([pd.to_datetime(x).strftime('%Y-%m-%d') for x in x_data])
+                plt.xticks(rotation=45)
+        ax.grid(True)
     
     def _save_and_show_plot(self, symbol, showout):
         """保存和显示图表"""
