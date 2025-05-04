@@ -53,8 +53,8 @@ class RenkoPlotter:
         for i in buy_signals.index:
             date = renko_data.iloc[i]['date']
             price = renko_data.iloc[i]['close']
-            # 将标记点向上移动5%
-            offset_price = price * 1.07
+            # 将标记点向上移动2%
+            offset_price = renko_data.iloc[i]['high'] * 1.02
             ax.scatter(i, offset_price, color='red', marker='^')
             ax.annotate(f'B\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
                        xy=(i, offset_price),
@@ -69,8 +69,8 @@ class RenkoPlotter:
         for i in sell_signals.index:
             date = renko_data.iloc[i]['date']
             price = renko_data.iloc[i]['close']
-            # 将标记点向上移动5%
-            offset_price = price * 1.07
+            # 将标记点向上移动2%
+            offset_price = renko_data.iloc[i]['high'] * 1.02
             ax.scatter(i, offset_price, color='green', marker='v')
             ax.annotate(f'S\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
                        xy=(i, offset_price),
