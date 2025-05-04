@@ -17,6 +17,7 @@ def parse_arguments():
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
     parser.add_argument('--max_iterations', type=int, default=500, help='最大优化迭代次数')
     parser.add_argument('--batch', action='store_true', help='是否以批处理模式运行（不显示图形）')
+    parser.add_argument('--brick_size', type=float, default=None, help='砖块颗粒度')
     return parser.parse_args()
 
 def main():

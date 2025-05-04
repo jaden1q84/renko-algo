@@ -28,7 +28,8 @@ class RenkoPlotter:
         """绘制K线图表"""
         title = f'{symbol}'
         if best_params:
-            title += f'\nBest Params: mode={best_params["mode"]}, brick_size=¥{best_params["brick_size"]}, buy_trend_length={best_params["buy_trend_length"]}, sell_trend_length={best_params["sell_trend_length"]}, atr_period={best_params["atr_period"]}, atr_multiplier={best_params["atr_multiplier"]}'
+            brick_size_str = "NA" if best_params['brick_size'] is None else f"{best_params['brick_size']:.2f}"
+            title += f"\nBest Params: mode={best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={best_params['buy_trend_length']}, sell_trend_length={best_params['sell_trend_length']}, atr_period={best_params['atr_period']}, atr_multiplier={best_params['atr_multiplier']}"
         ax.set_title(title)
         
         # 准备K线图数据
@@ -56,7 +57,7 @@ class RenkoPlotter:
             # 将标记点向上移动1%
             offset_price = renko_data.iloc[i]['high'] * 1.01
             ax.scatter(i, offset_price, color='red', marker='^')
-            ax.annotate(f'B\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
+            ax.annotate(f'B\n{price:.2f}@{date.strftime("%Y-%m-%d")}', 
                        xy=(i, offset_price),
                        xytext=(0, 10),
                        textcoords='offset points',
@@ -72,7 +73,7 @@ class RenkoPlotter:
             # 将标记点向上移动1%
             offset_price = renko_data.iloc[i]['high'] * 1.01
             ax.scatter(i, offset_price, color='green', marker='v')
-            ax.annotate(f'S\n{date.strftime("%Y-%m-%d")}\n{price:.2f}', 
+            ax.annotate(f'S\n{price:.2f}@{date.strftime("%Y-%m-%d")}', 
                        xy=(i, offset_price),
                        xytext=(0, 10),
                        textcoords='offset points',

@@ -40,7 +40,8 @@ class RenkoBacktester:
         self.logger.info("=== 最佳参数 ===")
         self.logger.info(f"模式: {best_params['mode']}, ATR周期: {best_params['atr_period']}, ATR倍数: {best_params['atr_multiplier']}, "
                     f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}\n"
-                    f"--renko_mode {best_params['mode']} --atr_period {best_params['atr_period']} --atr_multiplier {best_params['atr_multiplier']} --buy_trend_length {best_params['buy_trend_length']} --sell_trend_length {best_params['sell_trend_length']}")
+                    f"--renko_mode {best_params['mode']} --atr_period {best_params['atr_period']} --atr_multiplier {best_params['atr_multiplier']} "
+                    f"--buy_trend_length {best_params['buy_trend_length']} --sell_trend_length {best_params['sell_trend_length']} --brick_size {best_params['brick_size']:.2f}")
         self.logger.info("================")
         
         self._run_backtest_with_params(df, best_params, showout=not self.args.batch)
@@ -63,9 +64,11 @@ class RenkoBacktester:
         renko_gen = RenkoGenerator(mode=params['mode'],
                                  atr_period=params['atr_period'],
                                  atr_multiplier=params['atr_multiplier'],
-                                 symbol=self.args.symbol)
+                                 symbol=self.args.symbol,
+                                 brick_size=self.args.brick_size)
         renko_data = renko_gen.generate_renko(df)
-        params['brick_size'] = round(renko_gen.get_brick_size(), 1) if params['mode'] == 'atr' else None
+        params['brick_size'] = renko_gen.get_brick_size()
+        brick_size_str = "NA" if params['brick_size'] is None else f"{params['brick_size']:.2f}"
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
                                sell_trend_length=params['sell_trend_length'],
@@ -78,7 +81,8 @@ class RenkoBacktester:
         final_capital = portfolio_value['total'].iloc[-1]
         return_pct = (final_capital - initial_capital) / initial_capital * 100
         
-        self.logger.info(f"回测参数：--renko_mode {params['mode']} --atr_period {params['atr_period']} --atr_multiplier {params['atr_multiplier']} --buy_trend_length {params['buy_trend_length']} --sell_trend_length {params['sell_trend_length']}")
+        self.logger.info(f"回测参数：--renko_mode {params['mode']} --atr_period {params['atr_period']} --atr_multiplier {params['atr_multiplier']} "
+                         f"--buy_trend_length {params['buy_trend_length']} --sell_trend_length {params['sell_trend_length']} --brick_size {brick_size_str}")
         self.logger.info(f"初始资金: {initial_capital:.2f}")
         self.logger.info(f"最终资金: {final_capital:.2f}")
         self.logger.info(f"收益率: {return_pct:.2f}%")
