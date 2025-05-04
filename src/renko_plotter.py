@@ -19,7 +19,7 @@ class RenkoPlotter:
         self._plot_signals(ax1, renko_data, signals)
         
         # 绘制投资组合价值
-        self._plot_portfolio_value(ax2, renko_data, portfolio_value, symbol)
+        self._plot_portfolio_value(ax2, portfolio_value, symbol)
         
         # 保存和显示结果
         self._save_and_show_plot(symbol, showout)
@@ -67,27 +67,22 @@ class RenkoPlotter:
                    ha='center', 
                    va='bottom' if offset > 0 else 'top')
     
-    def _plot_portfolio_value(self, ax, renko_data, portfolio_value, symbol):
+    def _plot_portfolio_value(self, ax, portfolio_value, symbol):
         """绘制投资组合价值"""
         ax.set_title(f'Portfolio Value - {symbol}')
-        ax.plot(renko_data['date'], portfolio_value['total'], 'g-')
+        ax.plot(portfolio_value['date'], portfolio_value['total'], 'b-')
         
         max_idx = portfolio_value['total'].idxmax()
         last_idx = portfolio_value.index[-1]
         
-        self._annotate_portfolio_point(ax, renko_data, portfolio_value, max_idx, 'Max', 'yellow')
-        self._annotate_portfolio_point(ax, renko_data, portfolio_value, last_idx, 'Final', 'lightblue')
+        self._annotate_portfolio_point(ax, portfolio_value, max_idx, 'Max', 'yellow')
+        self._annotate_portfolio_point(ax, portfolio_value, last_idx, 'Final', 'lightblue')
         
-        #self._format_date_axis(ax)
-        """格式化日期轴"""
-        ax.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%Y-%m-%d'))
-        ax.xaxis.set_major_locator(plt.matplotlib.dates.AutoDateLocator())
-        plt.xticks(rotation=45)
-        ax.grid(True)
-    
-    def _annotate_portfolio_point(self, ax, renko_data, portfolio_value, idx, label, color):
+        self._format_date_axis(ax)
+
+    def _annotate_portfolio_point(self, ax, portfolio_value, idx, label, color):
         """标注投资组合的关键点"""
-        date = renko_data.iloc[idx]['date']
+        date = portfolio_value.iloc[idx]['date']
         value = portfolio_value.iloc[idx]['total']
         initial_value = portfolio_value['total'].iloc[0]
         ratio = (value / initial_value - 1) * 100
