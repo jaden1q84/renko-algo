@@ -70,7 +70,7 @@ class RenkoPlotter:
     def _plot_portfolio_value(self, ax, portfolio_value, symbol):
         """绘制投资组合价值"""
         ax.set_title(f'Portfolio Value - {symbol}')
-        ax.plot(portfolio_value['date'], portfolio_value['total'], 'b-')
+        ax.plot(portfolio_value.index, portfolio_value['total'], 'b-')
         
         max_idx = portfolio_value['total'].idxmax()
         last_idx = portfolio_value.index[-1]
@@ -78,17 +78,18 @@ class RenkoPlotter:
         self._annotate_portfolio_point(ax, portfolio_value, max_idx, 'Max', 'yellow')
         self._annotate_portfolio_point(ax, portfolio_value, last_idx, 'Final', 'lightblue')
         
-        self._format_date_axis(ax)
-
+        # 设置X轴标签
+        ax.set_xlabel('Index')
+        ax.grid(True)
+    
     def _annotate_portfolio_point(self, ax, portfolio_value, idx, label, color):
         """标注投资组合的关键点"""
-        date = portfolio_value.iloc[idx]['date']
         value = portfolio_value.iloc[idx]['total']
         initial_value = portfolio_value['total'].iloc[0]
         ratio = (value / initial_value - 1) * 100
         
         ax.annotate(f'{label}: {ratio:+.1f}%', 
-                   xy=(date, value),
+                   xy=(idx, value),
                    xytext=(0, 10),
                    textcoords='offset points',
                    ha='center',
