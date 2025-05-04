@@ -92,6 +92,7 @@ class RenkoStrategy:
         portfolio['index'] = renko_data['index']  # 添加index列
         portfolio['date'] = renko_data['date']  # 添加日期列
         portfolio['holdings'] = 0.0  # 持仓市值
+        portfolio['shares'] = 0.0  # 持仓股数
         portfolio['cash'] = 0.0  # 现金
         portfolio['total'] = 0.0  # 总资产
         portfolio['position'] = 0  # 持仓状态
@@ -103,63 +104,74 @@ class RenkoStrategy:
         self.logger.info(f"初始化完成 - 日期: {portfolio.iloc[0]['date'].strftime('%Y-%m-%d')}, "
                          f"现金: {initial_capital:,.2f}, "
                          f"总资产: {initial_capital:,.2f}")
-        buyin_price = 0
+        buyin_cost = 0
 
         for i in range(1, len(renko_data)):
-            first_buy = 0
             current_date = portfolio.index[i]
             previous_date = portfolio.index[i-1]
             
             # 复制前一天的状态
             portfolio.loc[current_date, 'position'] = portfolio.loc[previous_date, 'position']
-            portfolio.loc[current_date, 'holdings'] = portfolio.loc[previous_date, 'holdings']
+            portfolio.loc[current_date, 'shares'] = portfolio.loc[previous_date, 'shares']
             portfolio.loc[current_date, 'cash'] = portfolio.loc[previous_date, 'cash']
             
             current_price = renko_data.loc[current_date, 'close']
             previous_price = renko_data.loc[previous_date, 'close']
             
             if signals.loc[current_date, 'signal'] == 1 and portfolio.loc[previous_date, 'position'] == 0:
-                # 买入信号，满仓买入
+                # 买入信号，按100股取整计算
+                available_cash = portfolio.loc[previous_date, 'cash']
+                # 计算可买入的股数（向下取整到100的倍数）
+                shares = (available_cash // (current_price * 100)) * 100
+                # 计算买入金额（包含交易费用，假设交易费用为0.009%）
+                trade_amount = shares * current_price
+                commission = trade_amount * 0.00009
+                total_cost = trade_amount + commission
+                
                 portfolio.loc[current_date, 'position'] = 1
-                portfolio.loc[current_date, 'holdings'] = portfolio.loc[previous_date, 'cash']
-                portfolio.loc[current_date, 'cash'] = 0
-                first_buy = 1
-                buyin_price = current_price
+                portfolio.loc[current_date, 'holdings'] = trade_amount
+                portfolio.loc[current_date, 'shares'] = shares
+                portfolio.loc[current_date, 'cash'] = available_cash - total_cost
+                buyin_cost = total_cost
                 # 记录买入日志
-                self.logger.info(f"【执行买入】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                self.logger.info(f"【B-执行买入】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
-                               f"持仓市值: {portfolio.loc[current_date, 'holdings']:,.2f}")
+                               f"买入股数: {shares}, "
+                               f"买入金额: {trade_amount:,.2f}, "
+                               f"交易费用: {commission:,.2f}, "
+                               f"持仓市值: {portfolio.loc[current_date, 'holdings']:,.2f}, "
+                               f"剩余现金: {portfolio.loc[current_date, 'cash']:,.2f}")
             elif signals.loc[current_date, 'signal'] == -1 and portfolio.loc[previous_date, 'position'] == 1:
                 # 卖出信号，清仓
                 portfolio.loc[current_date, 'position'] = 0
                 
-                # 计算卖出时的日内收益
-                price_change = (current_price - previous_price) / previous_price
-                previous_holdings = portfolio.loc[current_date, 'holdings']
-                portfolio.loc[current_date, 'cash'] = portfolio.loc[previous_date, 'holdings'] * (1 + price_change)
-                portfolio.loc[current_date, 'holdings'] = 0
+                # 计算卖出金额
+                sell_shares = portfolio.loc[current_date, 'shares']
+                sell_amount = sell_shares * current_price
+                commission = sell_amount * 0.0006
+                total_sell = sell_amount - commission
 
+                # 计算卖出时的日内收益
+                portfolio.loc[current_date, 'cash'] += total_sell
+                portfolio.loc[current_date, 'holdings'] = 0
+                portfolio.loc[current_date, 'shares'] = 0
                 # 记录卖出日志
-                trade_return = (current_price - buyin_price) / buyin_price
-                self.logger.info(f"【执行卖出】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
+                trade_return = (total_sell - buyin_cost) / buyin_cost
+                self.logger.info(f"【S-执行卖出】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                f"价格: {current_price:.2f}, "
+                               f"卖出股数: {sell_shares}, "
+                               f"卖出金额: {sell_amount:,.2f}, "
+                               f"交易费用: {commission:,.2f}, "
+                               f"持仓市值: {portfolio.loc[current_date, 'holdings']:,.2f}, "
                                f"现金: {portfolio.loc[current_date, 'cash']:,.2f}, "
                                f"本次交易收益率: {trade_return:.2%}")
-                self.logger.debug(f"【卖出当日收益】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
-                                f"收盘价: {current_price:.2f}, "
-                                f"价格变化: {price_change:.2%}, "
-                                f"现金变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'cash']:,.2f}")
 
             # 计算持仓收益
             if portfolio.loc[current_date, 'position'] == 1:
-                # 计算持仓收益
-                price_change = 0 if first_buy == 1 else (current_price - previous_price) / previous_price
-                previous_holdings = portfolio.loc[current_date, 'holdings']
-                portfolio.loc[current_date, 'holdings'] = portfolio.loc[current_date, 'holdings'] * (1 + price_change)
+                portfolio.loc[current_date, 'holdings'] = portfolio.loc[current_date, 'shares'] * current_price
                 self.logger.debug(f"【持仓收益】 - 日期: {portfolio.iloc[i]['date'].strftime('%Y-%m-%d')}, "
                                 f"收盘价: {current_price:.2f}, "
-                                f"价格变化: {price_change:.2%}, "
-                                f"持仓变化: {previous_holdings:,.2f} -> {portfolio.loc[current_date, 'holdings']:,.2f}")
+                                f"持仓市值: {portfolio.loc[current_date, 'holdings']:,.2f}")
             
             # 更新总资产
             portfolio.loc[current_date, 'total'] = portfolio.loc[current_date, 'holdings'] + portfolio.loc[current_date, 'cash']
