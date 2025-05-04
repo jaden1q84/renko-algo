@@ -17,7 +17,7 @@ class RenkoGenerator:
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.symbol = symbol
-        self.renko_data = pd.DataFrame(columns=['date', 'open', 'high', 'low', 'close', 'trend'])
+        self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
         self.brick_size = None
         
     def _calculate_atr(self, data: pd.DataFrame) -> float:
@@ -70,6 +70,7 @@ class RenkoGenerator:
         """
         renko_data = []
         current_price = data['Close'].iloc[0]
+        index = 0
         
         for i in range(1, len(data)):
             price = data['Close'].iloc[i]
@@ -77,15 +78,18 @@ class RenkoGenerator:
             
             if price_change > 0:
                 renko_data.append({
+                    'index': index,
                     'date': data.index[i],
                     'open': current_price,
                     'high': price,
                     'low': current_price,
                     'close': price,
-                    'trend': 1
+                    'trend': 1  
                 })
+                index += 1
             elif price_change < 0:
                 renko_data.append({
+                    'index': index,
                     'date': data.index[i],
                     'open': current_price,
                     'high': current_price,
@@ -93,6 +97,7 @@ class RenkoGenerator:
                     'close': price,
                     'trend': -1
                 })
+                index += 1
             
             current_price = price
                         
@@ -113,6 +118,7 @@ class RenkoGenerator:
         current_price = data['Close'].iloc[0]
         self.brick_size = self._calculate_atr(data)
         print(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
+        index = 0
 
         for i in range(1, len(data)):
             price = data['Close'].iloc[i]
@@ -126,6 +132,7 @@ class RenkoGenerator:
                 for _ in range(num_bricks):
                     if direction > 0:
                         renko_data.append({
+                            'index': index,
                             'date': data.index[i],
                             'open': current_price,
                             'high': current_price + self.brick_size,
@@ -134,8 +141,10 @@ class RenkoGenerator:
                             'trend': 1
                         })
                         current_price += self.brick_size
+                        index += 1
                     else:
                         renko_data.append({
+                            'index': index,
                             'date': data.index[i],
                             'open': current_price,
                             'high': current_price,
@@ -144,6 +153,7 @@ class RenkoGenerator:
                             'trend': -1
                         })
                         current_price -= self.brick_size
+                        index += 1
                         
         self.renko_data = pd.DataFrame(renko_data)
 

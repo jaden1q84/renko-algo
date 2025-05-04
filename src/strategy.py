@@ -86,6 +86,7 @@ class RenkoStrategy:
         """
         self.logger.info(f"开始回测 - 初始资金: {initial_capital:,.2f}")
         portfolio = pd.DataFrame(index=renko_data.index)
+        portfolio['index'] = renko_data['index']  # 添加index列
         portfolio['date'] = renko_data['date']  # 添加日期列
         portfolio['holdings'] = 0.0  # 持仓市值
         portfolio['cash'] = 0.0  # 现金
@@ -168,7 +169,7 @@ class RenkoStrategy:
         start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
         end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
         file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
-        portfolio.to_csv(file_name, index=True)
+        portfolio.to_csv(file_name, index=False)
         self.logger.info(f"投资组合已保存至: {file_name}")
         
         return portfolio 
