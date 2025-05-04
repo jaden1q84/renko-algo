@@ -4,6 +4,8 @@ from typing import Dict, Tuple, List
 import logging
 from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 class BacktestOptimizer:
     def __init__(self, data: pd.DataFrame, initial_capital: float = 1000000):
@@ -17,6 +19,7 @@ class BacktestOptimizer:
         self.data = data
         self.initial_capital = initial_capital
         self.results = []
+        self.results_lock = threading.Lock()  # 用于线程安全的锁
         
         # 配置日志
         logging.basicConfig(level=logging.INFO,
@@ -24,12 +27,13 @@ class BacktestOptimizer:
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
         
-    def run_optimization(self, max_iterations: int = 100):
+    def run_optimization(self, max_iterations: int = 100, max_workers: int = 8):
         """
         运行参数优化
         
         Args:
             max_iterations (int): 最大迭代次数
+            max_workers (int): 最大线程数
         """
         self.logger.info("开始参数优化...")
         
@@ -38,30 +42,42 @@ class BacktestOptimizer:
         atr_multipliers = [0.2, 0.5, 1.0, 1.5, 2.0]
         trend_lengths = [2, 3, 5]  # 趋势长度参数范围
         
-        iteration_count = 1
+        # 创建任务列表
+        tasks = []
         
-        # 测试daily模式的不同趋势长度组合
+        # 添加daily模式任务
         for buy_length in trend_lengths:
             for sell_length in trend_lengths:
-                if iteration_count > max_iterations:
-                    self.logger.info(f"达到最大迭代次数 {max_iterations}，停止优化")
-                    break
-                    
-                self._test_daily_mode(buy_length, sell_length)
-                iteration_count += 1
+                tasks.append(('daily', None, None, buy_length, sell_length))
         
-        # 测试atr模式的不同参数组合
+        # 添加atr模式任务
         for period in atr_periods:
             for multiplier in atr_multipliers:
                 for buy_length in trend_lengths:
                     for sell_length in trend_lengths:
-                        if iteration_count > max_iterations:
-                            self.logger.info(f"达到最大迭代次数 {max_iterations}，停止优化")
-                            break
-                            
-                        self._test_atr_mode(period, multiplier, buy_length, sell_length)
-                        iteration_count += 1
-                
+                        tasks.append(('atr', period, multiplier, buy_length, sell_length))
+        
+        # 限制任务数量
+        tasks = tasks[:max_iterations]
+        
+        # 使用线程池执行任务
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for task in tasks:
+                mode, period, multiplier, buy_length, sell_length = task
+                if mode == 'daily':
+                    future = executor.submit(self._test_daily_mode, buy_length, sell_length)
+                else:
+                    future = executor.submit(self._test_atr_mode, period, multiplier, buy_length, sell_length)
+                futures.append(future)
+            
+            # 等待所有任务完成
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    self.logger.error(f"任务执行失败: {str(e)}")
+        
         # 输出优化结果
         self._print_optimization_results()
         
@@ -83,16 +99,17 @@ class BacktestOptimizer:
         # 计算收益率
         final_return = (portfolio.iloc[-1]['total'] - self.initial_capital) / self.initial_capital
         
-        # 记录结果
-        self.results.append({
-            'mode': 'daily',
-            'atr_period': None,
-            'atr_multiplier': None,
-            'buy_trend_length': buy_trend_length,
-            'sell_trend_length': sell_trend_length,
-            'return': final_return,
-            'portfolio': portfolio
-        })
+        # 使用锁来安全地添加结果
+        with self.results_lock:
+            self.results.append({
+                'mode': 'daily',
+                'atr_period': None,
+                'atr_multiplier': None,
+                'buy_trend_length': buy_trend_length,
+                'sell_trend_length': sell_trend_length,
+                'return': final_return,
+                'portfolio': portfolio
+            })
         
     def _test_atr_mode(self, atr_period: int, atr_multiplier: float, buy_trend_length: int, sell_trend_length: int):
         """测试ATR模式"""
@@ -114,16 +131,17 @@ class BacktestOptimizer:
         # 计算收益率
         final_return = (portfolio.iloc[-1]['total'] - self.initial_capital) / self.initial_capital
         
-        # 记录结果
-        self.results.append({
-            'mode': 'atr',
-            'atr_period': atr_period,
-            'atr_multiplier': atr_multiplier,
-            'buy_trend_length': buy_trend_length,
-            'sell_trend_length': sell_trend_length,
-            'return': final_return,
-            'portfolio': portfolio
-        })
+        # 使用锁来安全地添加结果
+        with self.results_lock:
+            self.results.append({
+                'mode': 'atr',
+                'atr_period': atr_period,
+                'atr_multiplier': atr_multiplier,
+                'buy_trend_length': buy_trend_length,
+                'sell_trend_length': sell_trend_length,
+                'return': final_return,
+                'portfolio': portfolio
+            })
         
     def _print_optimization_results(self):
         """输出优化结果"""
