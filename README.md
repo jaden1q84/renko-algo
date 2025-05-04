@@ -76,6 +76,9 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
   - 收益统计
   - 优化结果（如果启用优化）
 
+示例输出图表：
+![回测结果示例](example_figure.png)
+
 ## 注意事项
 
 1. 确保API令牌有效
