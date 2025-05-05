@@ -6,20 +6,22 @@ from renko_generator import RenkoGenerator
 from strategy import RenkoStrategy
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
+from config import RenkoConfig
 
 class BacktestOptimizer:
-    def __init__(self, data: pd.DataFrame, args: dict, initial_capital: float = 1000000):
+    def __init__(self, data: pd.DataFrame, args: dict, config_path: str = "config/config.yaml"):
         """
         初始化回测优化器
         
         Args:
             data (pd.DataFrame): 原始K线数据
             args (dict): 参数
-            initial_capital (float): 初始资金
+            config_path (str): 配置文件路径
         """
         self.data = data
         self.args = args
-        self.initial_capital = initial_capital
+        self.config = RenkoConfig(config_path)
+        self.initial_capital = self.config.initial_capital
         self.results = []
         self.results_lock = threading.Lock()  # 用于线程安全的锁
         
@@ -28,21 +30,24 @@ class BacktestOptimizer:
                           format='%(asctime)s - %(levelname)s - %(message)s',
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
+
+        if self.args.threads is not None:
+            self.logger.info(f"**********使用--threads {self.args.threads}个线程**********")
+            self.config.max_workers = self.args.threads
+        if self.args.max_iterations is not None:
+            self.logger.info(f"**********使用--max_iterations {self.args.max_iterations}次迭代**********")
+            self.config.max_iterations = self.args.max_iterations
         
-    def run_optimization(self, max_iterations: int = 10000, max_workers: int = 8):
+    def run_optimization(self):
         """
         运行参数优化
-        
-        Args:
-            max_iterations (int): 最大迭代次数
-            max_workers (int): 最大线程数
         """
         self.logger.info("开始参数优化...")
         
-        # 定义参数范围
-        atr_periods = [3, 5, 10, 15]
-        atr_multipliers = [0.3, 0.5, 1.0, 1.5, 2.0]
-        trend_lengths = [2, 3, 5]  # 趋势长度参数范围
+        # 从配置中获取参数范围
+        atr_periods = self.config.atr_periods
+        atr_multipliers = self.config.atr_multipliers
+        trend_lengths = self.config.trend_lengths
         
         # 创建任务列表
         tasks = []
@@ -60,10 +65,10 @@ class BacktestOptimizer:
                         tasks.append(('atr', period, multiplier, buy_length, sell_length))
         
         # 限制任务数量
-        tasks = tasks[:max_iterations]
+        tasks = tasks[:self.config.max_iterations]
         
         # 使用线程池执行任务
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
             futures = []
             for task in tasks:
                 mode, period, multiplier, buy_length, sell_length = task

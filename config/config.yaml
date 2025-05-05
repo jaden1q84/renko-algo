@@ -1,0 +1,9 @@
+backtest_config:
+  max_iterations: 10000
+  max_workers: 4
+  initial_capital: 1000000
+
+optimization_parameters:
+  atr_periods: [3, 5, 10, 15]
+  atr_multipliers: [0.3, 0.5, 1.0, 2.0]
+  trend_lengths: [2, 3, 5] 

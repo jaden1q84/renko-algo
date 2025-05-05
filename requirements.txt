@@ -5,3 +5,4 @@ yfinance>=0.1.70
 ta-lib>=0.4.24
 backtrader>=1.9.76.123
 mplfinance>=0.12.9b7 
+pyyaml>=6.0.2

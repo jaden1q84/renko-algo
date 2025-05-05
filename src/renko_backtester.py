@@ -34,7 +34,7 @@ class RenkoBacktester:
     def _run_optimized_backtest(self, df):
         """运行优化后的回测"""
         optimizer = BacktestOptimizer(df, self.args)
-        optimizer.run_optimization(max_iterations=self.args.max_iterations, max_workers=self.args.threads)
+        optimizer.run_optimization()
         best_params = optimizer.get_best_parameters()
         
         self.logger.info("========================最优参数组合=========================")
