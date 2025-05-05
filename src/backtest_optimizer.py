@@ -37,7 +37,17 @@ class BacktestOptimizer:
         if self.args.max_iterations is not None:
             self.logger.info(f"**********使用--max_iterations {self.args.max_iterations}次迭代**********")
             self.config.max_iterations = self.args.max_iterations
-        
+
+        # 打印当前的配置参数
+        self.logger.info("**********************本次优化器配置参数**********************")
+        self.logger.info(f"初始资金: {self.initial_capital}")
+        self.logger.info(f"最大迭代次数: {self.config.max_iterations}")
+        self.logger.info(f"最大线程数: {self.config.max_workers}")
+        self.logger.info(f"ATR周期选项: {self.config.atr_periods}")
+        self.logger.info(f"ATR倍数选项: {self.config.atr_multipliers}")
+        self.logger.info(f"趋势长度选项: {self.config.trend_lengths}")
+        self.logger.info("**************************************************************")
+
     def run_optimization(self):
         """
         运行参数优化

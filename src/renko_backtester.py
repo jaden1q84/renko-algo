@@ -88,4 +88,5 @@ class RenkoBacktester:
         self.logger.info(f"收益率: {return_pct:.2f}%")
         
         # 使用绘图器绘制结果
-        self.plotter.plot_results(renko_data, portfolio_value, signals, self.args.symbol, params, showout) 
+        self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, params)
+        self.plotter.plot_results(showout) 
