@@ -22,7 +22,9 @@ class RenkoPlotter:
         self._plot_portfolio_value(ax2, portfolio_value, symbol)
         
         # 保存和显示结果
-        self._save_and_show_plot(symbol, showout)
+        start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
+        end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        self._save_and_show_plot(symbol, start_date, end_date, showout)
     
     def _plot_renko_chart(self, ax, renko_data, symbol, best_params):
         """绘制K线图表"""
@@ -133,9 +135,9 @@ class RenkoPlotter:
                 plt.xticks(rotation=45)
         ax.grid(True)
     
-    def _save_and_show_plot(self, symbol, showout):
+    def _save_and_show_plot(self, symbol, start_date, end_date, showout):
         """保存和显示图表"""
-        file_name = f"{self.output_dir}/{symbol}.png"
+        file_name = f"{self.output_dir}/{symbol}-{start_date}-{end_date}.png"
         plt.tight_layout()
         plt.savefig(file_name)
         
