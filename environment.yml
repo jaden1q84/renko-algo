@@ -13,3 +13,4 @@ dependencies:
     - yfinance>=0.1.70
     - backtrader>=1.9.76.123
     - tushare>=1.2.89 
+    - mplfinance>=0.12.9b7 

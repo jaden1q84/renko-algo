@@ -3,4 +3,5 @@ numpy>=1.21.0
 matplotlib>=3.4.0
 yfinance>=0.1.70
 ta-lib>=0.4.24
-backtrader>=1.9.76.123 
+backtrader>=1.9.76.123
+mplfinance>=0.12.9b7 
