@@ -38,7 +38,7 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 ```
 
 3. 参数说明：
-- `--token`: API访问令牌（必需）
+- `--token`: tushare.pro API访问令牌（必需）
 - `--symbol`: 股票代码（必需）
 - `--start_date`: 开始日期（必需）
 - `--end_date`: 结束日期（必需）
@@ -83,7 +83,7 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 
 ## 注意事项
 
-1. 确保API令牌有效
+1. 确保API token有效，自行到 https://tushare.pro/ 注册并获取tokon
 2. 数据获取可能需要一定时间，请耐心等待
 3. 参数优化可能需要较长时间，建议先在小数据集上测试
 4. 批处理模式下不会显示图形界面 
