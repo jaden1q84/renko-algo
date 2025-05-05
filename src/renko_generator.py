@@ -142,28 +142,36 @@ class RenkoGenerator:
                 direction = 1 if price_change > 0 else -1
                 for _ in range(num_bricks):
                     if direction > 0:
+                        open_price = current_price
+                        close_price = current_price + self.brick_size
+                        current_price += self.brick_size
+                        if len(renko_data) > 0 and close_price == renko_data[-1]['open']:
+                            continue
                         renko_data.append({
                             'index': index,
                             'date': data.index[i],
-                            'open': current_price,
-                            'high': current_price + self.brick_size,
-                            'low': current_price,
-                            'close': current_price + self.brick_size,
+                            'open': open_price,
+                            'high': close_price,
+                            'low': open_price,
+                            'close': close_price,
                             'trend': 1
                         })
-                        current_price += self.brick_size
                         index += 1
                     else:
+                        open_price = current_price
+                        close_price = current_price - self.brick_size
+                        current_price -= self.brick_size
+                        if len(renko_data) > 0 and close_price == renko_data[-1]['open']:
+                            continue
                         renko_data.append({
                             'index': index,
                             'date': data.index[i],
-                            'open': current_price,
-                            'high': current_price,
-                            'low': current_price - self.brick_size,
-                            'close': current_price - self.brick_size,
+                            'open': open_price,
+                            'high': close_price,
+                            'low': open_price,
+                            'close': close_price,
                             'trend': -1
                         })
-                        current_price -= self.brick_size
                         index += 1
                         
         self.renko_data = pd.DataFrame(renko_data)
