@@ -76,7 +76,7 @@ class RenkoPlotter:
         # 绘制买入信号
         for i in buy_signals.index:
             date = self.renko_data.iloc[i]['date']
-            price = self.renko_data.iloc[i]['close']
+            price = self.renko_data.iloc[i]['real_close']
             # 将标记点向上移动1%
             offset_price = self.renko_data.iloc[i]['high'] * 1.01
             ax.scatter(i, offset_price, color='red', marker='^')
@@ -92,7 +92,7 @@ class RenkoPlotter:
         # 绘制卖出信号
         for i in sell_signals.index:
             date = self.renko_data.iloc[i]['date']
-            price = self.renko_data.iloc[i]['close']
+            price = self.renko_data.iloc[i]['real_close']
             # 将标记点向上移动1%
             offset_price = self.renko_data.iloc[i]['high'] * 1.01
             ax.scatter(i, offset_price, color='green', marker='v')

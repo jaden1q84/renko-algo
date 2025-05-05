@@ -4,7 +4,7 @@ from typing import Literal
 import logging
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None):
+    def __init__(self, mode: Literal['daily', 'atr'] = 'atr', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None):
         """
         初始化砖型图生成器
         
@@ -20,7 +20,7 @@ class RenkoGenerator:
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.symbol = symbol
-        self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
+        self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'real_close', 'trend'])
         self.brick_size = brick_size
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
@@ -154,6 +154,7 @@ class RenkoGenerator:
                             'high': close_price,
                             'low': open_price,
                             'close': close_price,
+                            'real_close': data.iloc[i]['Close'],
                             'trend': 1
                         })
                         index += 1
@@ -170,6 +171,7 @@ class RenkoGenerator:
                             'high': close_price,
                             'low': open_price,
                             'close': close_price,
+                            'real_close': data.iloc[i]['Close'],
                             'trend': -1
                         })
                         index += 1
