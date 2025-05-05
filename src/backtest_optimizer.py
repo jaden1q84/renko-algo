@@ -120,6 +120,7 @@ class BacktestOptimizer:
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier,
                                  symbol=self.data.name if hasattr(self.data, 'name') else None)
         renko_data = renko_gen.generate_renko(self.data)
+        brick_size = renko_gen.get_brick_size()
         
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
@@ -140,7 +141,8 @@ class BacktestOptimizer:
                 'buy_trend_length': buy_trend_length,
                 'sell_trend_length': sell_trend_length,
                 'return': final_return,
-                'portfolio': portfolio
+                'portfolio': portfolio,
+                'brick_size': brick_size
             })
         
     def _print_optimization_results(self):

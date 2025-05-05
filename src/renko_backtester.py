@@ -34,7 +34,7 @@ class RenkoBacktester:
     def _run_optimized_backtest(self, df):
         """运行优化后的回测"""
         optimizer = BacktestOptimizer(df)
-        optimizer.run_optimization(max_iterations=self.args.max_iterations)
+        optimizer.run_optimization(max_iterations=self.args.max_iterations, max_workers=self.args.threads)
         best_params = optimizer.get_best_parameters()
         
         self.logger.info("=== 最佳参数 ===")
@@ -67,7 +67,7 @@ class RenkoBacktester:
                                  symbol=self.args.symbol,
                                  brick_size=self.args.brick_size)
         renko_data = renko_gen.generate_renko(df)
-        params['brick_size'] = renko_gen.get_brick_size()
+        params['brick_size'] = renko_gen.get_brick_size() if params['brick_size'] is None else params['brick_size']
         brick_size_str = "NA" if params['brick_size'] is None else f"{params['brick_size']:.2f}"
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
