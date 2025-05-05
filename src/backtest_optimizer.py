@@ -8,15 +8,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
 class BacktestOptimizer:
-    def __init__(self, data: pd.DataFrame, initial_capital: float = 1000000):
+    def __init__(self, data: pd.DataFrame, args: dict, initial_capital: float = 1000000):
         """
         初始化回测优化器
         
         Args:
             data (pd.DataFrame): 原始K线数据
+            args (dict): 参数
             initial_capital (float): 初始资金
         """
         self.data = data
+        self.args = args
         self.initial_capital = initial_capital
         self.results = []
         self.results_lock = threading.Lock()  # 用于线程安全的锁
@@ -92,7 +94,7 @@ class BacktestOptimizer:
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
                                sell_trend_length=sell_trend_length,
-                               symbol=self.data.name if hasattr(self.data, 'name') else None)
+                               symbol=self.args.symbol)
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         
@@ -113,8 +115,8 @@ class BacktestOptimizer:
         
     def _test_atr_mode(self, atr_period: int, atr_multiplier: float, buy_trend_length: int, sell_trend_length: int):
         """测试ATR模式"""
-        self.logger.info(f"测试ATR模式 - 周期: {atr_period}, 倍数: {atr_multiplier}, "
-                        f"买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
+        self.logger.info(f"=========测试ATR模式 - 周期: {atr_period}, 倍数: {atr_multiplier}, "
+                        f"买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}=========")
         
         # 生成砖型图
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier,
@@ -125,7 +127,7 @@ class BacktestOptimizer:
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
                                sell_trend_length=sell_trend_length,
-                               symbol=self.data.name if hasattr(self.data, 'name') else None)
+                               symbol=self.args.symbol)
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         
@@ -164,7 +166,7 @@ class BacktestOptimizer:
             
         # 输出最优参数
         best_result = sorted_results[0]
-        self.logger.info("最优参数组合:")
+        self.logger.info("========================最优参数组合=========================")
         self.logger.info(f"模式: {best_result['mode']}")
         if best_result['mode'] == 'atr':
             self.logger.info(f"ATR周期: {best_result['atr_period']}")
@@ -172,7 +174,9 @@ class BacktestOptimizer:
         self.logger.info(f"买入趋势长度: {best_result['buy_trend_length']}")
         self.logger.info(f"卖出趋势长度: {best_result['sell_trend_length']}")
         self.logger.info(f"收益率: {best_result['return']:.2%}")
-        
+        self.logger.info(f"砖型大小: {best_result['brick_size']:.2f}")
+        self.logger.info("===========================================================")
+
     def get_best_parameters(self) -> Dict:
         """获取最优参数组合"""
         sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=True)

@@ -33,16 +33,16 @@ class RenkoBacktester:
     
     def _run_optimized_backtest(self, df):
         """运行优化后的回测"""
-        optimizer = BacktestOptimizer(df)
+        optimizer = BacktestOptimizer(df, self.args)
         optimizer.run_optimization(max_iterations=self.args.max_iterations, max_workers=self.args.threads)
         best_params = optimizer.get_best_parameters()
         
-        self.logger.info("=== 最佳参数 ===")
+        self.logger.info("========================最优参数组合=========================")
         self.logger.info(f"模式: {best_params['mode']}, ATR周期: {best_params['atr_period']}, ATR倍数: {best_params['atr_multiplier']}, "
                     f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}\n"
                     f"--renko_mode {best_params['mode']} --atr_period {best_params['atr_period']} --atr_multiplier {best_params['atr_multiplier']} "
                     f"--buy_trend_length {best_params['buy_trend_length']} --sell_trend_length {best_params['sell_trend_length']} --brick_size {best_params['brick_size']:.2f}")
-        self.logger.info("================")
+        self.logger.info("===========================================================")
         
         self._run_backtest_with_params(df, best_params, showout=not self.args.batch)
     
