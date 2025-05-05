@@ -1,5 +1,5 @@
 backtest_config:
-  max_iterations: 10000
+  max_iterations: 100000
   max_workers: 4
   initial_capital: 1000000
 

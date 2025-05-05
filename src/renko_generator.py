@@ -176,12 +176,11 @@ class RenkoGenerator:
                         
         self.renko_data = pd.DataFrame(renko_data)
 
-        # start_date = self.renko_data.iloc[0]['date'].strftime('%Y%m%d')
-        # end_date = self.renko_data.iloc[-1]['date'].strftime('%Y%m%d')
-        # file_name = f"data/renko_data-{self.symbol}-{start_date}-{end_date}.csv"
-        # self.renko_data.to_csv(file_name, index=False)
-        # print(f"砖型图数据已保存至: {file_name}")
-        
+        start_date = self.renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
+        end_date = self.renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        file_name = f"data/renko_data-{self.symbol}-{start_date}-{end_date}.csv"
+        self.renko_data.to_csv(file_name, index=False)
+        self.logger.info(f"砖型图数据已保存至: {file_name}")
         return self.renko_data
         
     def get_brick_size(self) -> float:

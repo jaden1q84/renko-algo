@@ -93,7 +93,7 @@ class BacktestOptimizer:
         self.logger.info(f"测试daily模式 - 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
         # 生成砖型图
-        renko_gen = RenkoGenerator(mode='daily', symbol=self.data.name if hasattr(self.data, 'name') else None)
+        renko_gen = RenkoGenerator(mode='daily', symbol=self.args.symbol)
         renko_data = renko_gen.generate_renko(self.data)
         
         # 运行策略
@@ -125,7 +125,7 @@ class BacktestOptimizer:
         
         # 生成砖型图
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier,
-                                 symbol=self.data.name if hasattr(self.data, 'name') else None)
+                                 symbol=self.args.symbol)
         renko_data = renko_gen.generate_renko(self.data)
         brick_size = renko_gen.get_brick_size()
         

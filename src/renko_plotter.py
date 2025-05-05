@@ -26,10 +26,13 @@ class RenkoPlotter:
     
     def _plot_renko_chart(self, ax, renko_data, symbol, best_params):
         """绘制K线图表"""
-        title = f'{symbol}'
+        start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
+        end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        title = f'{symbol} - {start_date} ~ {end_date}'
         if best_params:
             brick_size_str = "NA" if best_params['brick_size'] is None else f"{best_params['brick_size']:.2f}"
-            title += f"\nBest Params: mode={best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={best_params['buy_trend_length']}, sell_trend_length={best_params['sell_trend_length']}, atr_period={best_params['atr_period']}, atr_multiplier={best_params['atr_multiplier']}"
+            title += f"\nBest Params: mode={best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={best_params['buy_trend_length']}, "
+            title += f"sell_trend_length={best_params['sell_trend_length']}, atr_period={best_params['atr_period']}, atr_multiplier={best_params['atr_multiplier']}"
         ax.set_title(title)
         
         # 准备K线图数据
