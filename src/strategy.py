@@ -3,17 +3,15 @@ import numpy as np
 import logging
 
 class RenkoStrategy:
-    def __init__(self, buy_trend_length=3, sell_trend_length=3, brick_size=1, symbol=None):
+    def __init__(self, buy_trend_length=3, sell_trend_length=3, symbol=None):
         """
         初始化Renko策略
         
         Args:
-            brick_size (float): 砖块大小
             buy_trend_length (int): 买入信号所需的趋势长度
             sell_trend_length (int): 卖出信号所需的趋势长度
             symbol (str): 股票代码
         """
-        self.brick_size = brick_size
         self.buy_trend_length = buy_trend_length
         self.sell_trend_length = sell_trend_length
         self.symbol = symbol
@@ -22,7 +20,7 @@ class RenkoStrategy:
                           format='%(asctime)s - %(levelname)s - %(message)s',
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"策略初始化完成 - 股票代码: {symbol}, 砖块大小: {brick_size}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
+        self.logger.info(f"策略初始化完成 - 股票代码: {symbol}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
     def calculate_signals(self, renko_data):
         """

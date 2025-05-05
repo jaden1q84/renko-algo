@@ -6,12 +6,13 @@
 
 ```
 src/
-├── main.py              # 主程序入口
-├── renko_backtest.py    # Renko回测核心类
-├── data_fetcher.py      # 数据获取模块
-├── renko_generator.py   # Renko图表生成器
-├── strategy.py          # 交易策略实现
-└── backtest_optimizer.py # 参数优化器
+├── main.py                # 主程序入口
+├── renko_backtester.py    # Renko回测核心类
+├── data_fetcher.py        # 数据获取模块
+├── renko_generator.py     # Renko图表生成器
+├── strategy.py            # 交易策略实现
+├── backtest_optimizer.py  # 参数优化器
+└── renko_plotter.py       # Renko图表可视化
 ```
 
 ## 功能特点
@@ -25,9 +26,10 @@ src/
 
 ## 使用方法
 
-1. 安装依赖：
+1. 推荐使用conda安装依赖：
 ```bash
-pip install -r requirements.txt
+conda env create -f environment.yml
+conda activate renko-algo
 ```
 
 2. 运行回测：
@@ -40,7 +42,7 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 - `--symbol`: 股票代码（必需）
 - `--start_date`: 开始日期（必需）
 - `--end_date`: 结束日期（必需）
-- `--renko_mode`: Renko生成模式（可选，默认daily）
+- `--renko_mode`: Renko生成模式（可选，默认atr）
 - `--atr_period`: ATR周期（可选，默认10）
 - `--atr_multiplier`: ATR乘数（可选，默认0.5）
 - `--buy_trend_length`: 买入信号所需的趋势长度（可选，默认3）

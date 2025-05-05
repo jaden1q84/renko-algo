@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
 from typing import Literal
+import logging
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None):
+    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None):
         """
         初始化砖型图生成器
         
@@ -12,14 +13,20 @@ class RenkoGenerator:
             atr_period (int): ATR计算周期
             atr_multiplier (float): ATR倍数，用于调整砖块大小
             symbol (str): 股票代码
+            brick_size (float): 砖块颗粒度
         """
+        # 配置日志
         self.mode = mode
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.symbol = symbol
         self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
-        self.brick_size = None
-        
+        self.brick_size = brick_size
+        logging.basicConfig(level=logging.INFO,
+                          format='%(asctime)s - %(levelname)s - %(message)s',
+                          datefmt='%Y-%m-%d %H:%M:%S')
+        self.logger = logging.getLogger(__name__)
+
     def _calculate_atr(self, data: pd.DataFrame) -> float:
         """
         计算ATR值
@@ -116,8 +123,12 @@ class RenkoGenerator:
         """
         renko_data = []
         current_price = data['Close'].iloc[0]
-        self.brick_size = self._calculate_atr(data)
-        print(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
+        if self.brick_size is None:
+            self.brick_size = self._calculate_atr(data)
+            self.logger.info(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
+        else:
+            self.logger.info(f"使用用户设置的砖块大小: {self.brick_size:.2f}")
+            
         index = 0
 
         for i in range(1, len(data)):
