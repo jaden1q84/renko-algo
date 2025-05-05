@@ -40,8 +40,8 @@ class BacktestOptimizer:
         self.logger.info("开始参数优化...")
         
         # 定义参数范围
-        atr_periods = [2, 3, 5, 10]
-        atr_multipliers = [0.2, 0.5, 1.0, 1.5, 2.0]
+        atr_periods = [3, 5, 10, 15]
+        atr_multipliers = [0.3, 0.5, 1.0, 1.5, 2.0]
         trend_lengths = [2, 3, 5]  # 趋势长度参数范围
         
         # 创建任务列表
