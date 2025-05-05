@@ -24,7 +24,7 @@ class BacktestOptimizer:
                           datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
         
-    def run_optimization(self, max_iterations: int = 100):
+    def run_optimization(self, max_iterations: int = 10000):
         """
         运行参数优化
         
