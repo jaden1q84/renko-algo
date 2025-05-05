@@ -78,7 +78,10 @@ class DataFetcher:
             end_date = end_date.replace('-', '')
             
             # 获取数据
-            df = self.pro.daily(ts_code=symbol, start_date=start_date, end_date=end_date)
+            if symbol.endswith('.HK'):
+                df = self.pro.hk_daily(ts_code=symbol, start_date=start_date, end_date=end_date)
+            else:
+                df = self.pro.daily(ts_code=symbol, start_date=start_date, end_date=end_date)
             
             if df.empty:
                 raise ValueError(f"无法获取{symbol}的数据")
