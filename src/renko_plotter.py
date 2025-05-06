@@ -104,12 +104,20 @@ class RenkoPlotter:
                        va='bottom',
                        color='green',
                        fontsize=7)
-        
-        # 添加图例
-        handles, labels = ax.get_legend_handles_labels()
-        if handles:
-            ax.legend(handles, labels, loc='upper left')
-    
+            
+        # 绘制最后砖块价格和日期
+        last_brick_price = self.renko_data.iloc[-1]['close']
+        last_brick_date = self.renko_data.iloc[-1]['date']
+        offset_price = self.renko_data.iloc[-1]['high'] * 1.01
+        ax.annotate(f'Current Price:\n{last_brick_price:.2f}@{last_brick_date.strftime("%Y-%m-%d")}', 
+                    xy=(len(self.renko_data)-1, offset_price),
+                    xytext=(0, 10),
+                    textcoords='offset points',
+                    ha='center',
+                    va='bottom',
+                    color='blue',
+                    fontsize=7)
+            
     def _plot_portfolio_value(self, ax):
         """绘制投资组合价值"""
         ax.set_title(f'Portfolio Value - {self.symbol}')
