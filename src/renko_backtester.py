@@ -86,6 +86,9 @@ class RenkoBacktester:
         self.logger.info(f"初始资金: {initial_capital:.2f}")
         self.logger.info(f"最终资金: {final_capital:.2f}")
         self.logger.info(f"收益率: {return_pct:.2f}%")
+
+        # 打印砖形图最后一行数据，辅助判断后续策略
+        self.logger.info(f"renko_data最后一行: \n{renko_data.iloc[-1]}")
         
         # 使用绘图器绘制结果
         self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, params)
