@@ -34,7 +34,7 @@ class RenkoPlotter:
         if any(v is None for v in [self.renko_data, self.portfolio_value, self.signals, self.symbol]):
             raise ValueError("请先使用set_data方法设置数据")
             
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(24, 12))
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 9))
         
         # 绘制Renko图
         self._plot_renko_chart(ax1)
@@ -44,6 +44,8 @@ class RenkoPlotter:
         self._plot_portfolio_value(ax2)
         
         # 保存和显示结果
+        ax1.margins(y=0.2)
+        ax2.margins(y=0.2)
         self._save_and_show_plot(showout)
     
     def _plot_renko_chart(self, ax):
@@ -53,7 +55,7 @@ class RenkoPlotter:
             brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
             title += f"\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
             title += f"sell_trend_length={self.best_params['sell_trend_length']}, atr_period={self.best_params['atr_period']}, atr_multiplier={self.best_params['atr_multiplier']}"
-        ax.set_title(title)
+        ax.set_title(title, fontsize=10)
         
         # 准备K线图数据
         df = self.renko_data.copy()
@@ -65,8 +67,7 @@ class RenkoPlotter:
         
         # 绘制K线图
         mpf.plot(df, type='candle', volume=False, show_nontrading=False, ax=ax, style=style)
-        
-        self._format_date_axis(ax)
+        ax.grid(True)
 
     def _plot_signals(self, ax):
         """绘制交易信号"""
@@ -80,7 +81,7 @@ class RenkoPlotter:
             # 将标记点向上移动1%
             offset_price = self.renko_data.iloc[i]['high'] * 1.01
             ax.scatter(i, offset_price, color='red', marker='^')
-            ax.annotate(f'B\n{price:.2f}@{date.strftime("%Y-%m-%d")}', 
+            ax.annotate(f'B: {price:.2f}\n{date.strftime("%Y%m%d")}', 
                        xy=(i, offset_price),
                        xytext=(0, 10),
                        textcoords='offset points',
@@ -94,9 +95,9 @@ class RenkoPlotter:
             date = self.renko_data.iloc[i]['date']
             price = self.renko_data.iloc[i]['close']
             # 将标记点向上移动1%
-            offset_price = self.renko_data.iloc[i]['high'] * 1.01
+            offset_price = self.renko_data.iloc[i]['open'] * 1.01
             ax.scatter(i, offset_price, color='green', marker='v')
-            ax.annotate(f'S\n{price:.2f}@{date.strftime("%Y-%m-%d")}', 
+            ax.annotate(f'S: {price:.2f}\n{date.strftime("%Y%m%d")}', 
                        xy=(i, offset_price),
                        xytext=(0, 10),
                        textcoords='offset points',
@@ -109,7 +110,7 @@ class RenkoPlotter:
         last_brick_price = self.renko_data.iloc[-1]['close']
         last_brick_date = self.renko_data.iloc[-1]['date']
         offset_price = self.renko_data.iloc[-1]['high'] * 1.01
-        ax.annotate(f'Current Price:\n{last_brick_price:.2f}@{last_brick_date.strftime("%Y-%m-%d")}', 
+        ax.annotate(f'N: {last_brick_price:.2f}\n{last_brick_date.strftime("%Y%m%d")}', 
                     xy=(len(self.renko_data)-1, offset_price),
                     xytext=(0, 10),
                     textcoords='offset points',
@@ -146,21 +147,9 @@ class RenkoPlotter:
                    ha='center',
                    va='bottom',
                    bbox=dict(boxstyle='round,pad=0.5', fc=color, alpha=0.5),
-                   arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
-    
-    def _format_date_axis(self, ax):
-        """格式化日期轴"""
-        # 获取当前图表的数据
-        lines = ax.get_lines()
-        if lines:
-            x_data = lines[0].get_xdata()
-            if len(x_data) > 0:
-                # 设置X轴刻度为日期
-                ax.set_xticks(x_data)
-                ax.set_xticklabels([pd.to_datetime(x).strftime('%Y-%m-%d') for x in x_data])
-                plt.xticks(rotation=45)
-        ax.grid(True)
-    
+                   arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'),
+                   fontsize=7)
+        
     def _save_and_show_plot(self, showout):
         """保存和显示图表"""
         file_name = f"{self.output_dir}/{self.symbol}-{self.start_date}-{self.end_date}.png"
