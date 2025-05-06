@@ -116,7 +116,6 @@ class RenkoStrategy:
             portfolio.loc[current_date, 'cash'] = portfolio.loc[previous_date, 'cash']
             
             current_price = renko_data.loc[current_date, 'close']
-            previous_price = renko_data.loc[previous_date, 'close']
             
             if signals.loc[current_date, 'signal'] == 1 and portfolio.loc[previous_date, 'position'] == 0:
                 # 买入信号，按100股取整计算

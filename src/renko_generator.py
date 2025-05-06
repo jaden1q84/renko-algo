@@ -183,7 +183,25 @@ class RenkoGenerator:
                             'trend': -1
                         })
                         index += 1
-                        
+
+        # 如果K线后几天的价格没形成1个砖块区间，就补一块不完整的砖
+        if len(renko_data) > 0:
+            last_brick_date = renko_data[-1]['date']
+            last_k_date = data.index[-1]
+            if last_brick_date != last_k_date:
+                last_brick_price = renko_data[-1]['close']
+                last_k_price = data['Close'].iloc[-1]
+                renko_data.append({
+                    'index': index,
+                    'date': last_k_date,
+                    'open': last_brick_price,
+                    'high': last_k_price if last_k_price > last_brick_price else last_brick_price,
+                    'low': last_k_price if last_k_price < last_brick_price else last_brick_price,
+                    'close': last_k_price,
+                    'trend': 1 if last_k_price > last_brick_price else -1
+                })
+                index += 1
+        
         self.renko_data = pd.DataFrame(renko_data)
 
         if self.save_data:
