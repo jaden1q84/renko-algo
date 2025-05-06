@@ -4,7 +4,9 @@ from typing import Literal
 import logging
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None):
+    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, 
+                 atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None, 
+                 save_data: bool = False):
         """
         初始化砖型图生成器
         
@@ -14,6 +16,7 @@ class RenkoGenerator:
             atr_multiplier (float): ATR倍数，用于调整砖块大小
             symbol (str): 股票代码
             brick_size (float): 砖块颗粒度
+            save_data (bool): 是否保存结果到文件，默认False
         """
         # 配置日志
         self.mode = mode
@@ -22,6 +25,7 @@ class RenkoGenerator:
         self.symbol = symbol
         self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
         self.brick_size = brick_size
+        self.save_data = save_data
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
                           datefmt='%Y-%m-%d %H:%M:%S')
@@ -182,11 +186,8 @@ class RenkoGenerator:
                         
         self.renko_data = pd.DataFrame(renko_data)
 
-        start_date = self.renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
-        end_date = self.renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
-        file_name = f"data/renko_data-{self.symbol}-{start_date}-{end_date}.csv"
-        self.renko_data.to_csv(file_name, index=False)
-        self.logger.info(f"砖型图数据已保存至: {file_name}")
+        if self.save_data:
+            self._save_data()
         return self.renko_data
         
     def get_brick_size(self) -> float:
@@ -197,3 +198,16 @@ class RenkoGenerator:
             float: 砖块大小
         """
         return self.brick_size 
+
+    def _save_data(self):
+        """
+        保存砖型图数据到文件
+        """
+        if self.renko_data.empty or self.symbol is None:
+            self.logger.warning("砖型图数据为空或未设置symbol，未保存文件。")
+            return
+        start_date = self.renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
+        end_date = self.renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        file_name = f"data/{self.symbol}-renko_data-{start_date}-{end_date}.csv"
+        self.renko_data.to_csv(file_name, index=False)
+        self.logger.info(f"砖型图数据已保存至: {file_name}") 

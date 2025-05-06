@@ -103,13 +103,15 @@ class BacktestOptimizer:
         self.logger.info(f"测试daily模式 - 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         
         # 生成砖型图
-        renko_gen = RenkoGenerator(mode='daily', symbol=self.args.symbol)
+        renko_gen = RenkoGenerator(mode='daily', symbol=self.args.symbol, 
+                                   save_data=getattr(self.args, 'save_data', False))
         renko_data = renko_gen.generate_renko(self.data)
         
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
                                sell_trend_length=sell_trend_length,
-                               symbol=self.args.symbol)
+                               symbol=self.args.symbol,
+                               save_data=getattr(self.args, 'save_data', False))
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         
@@ -135,14 +137,15 @@ class BacktestOptimizer:
         
         # 生成砖型图
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier,
-                                 symbol=self.args.symbol)
+                                 symbol=self.args.symbol, save_data=getattr(self.args, 'save_renko_data', False))
         renko_data = renko_gen.generate_renko(self.data)
         brick_size = renko_gen.get_brick_size()
         
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
                                sell_trend_length=sell_trend_length,
-                               symbol=self.args.symbol)
+                               symbol=self.args.symbol,
+                               save_data=getattr(self.args, 'save_data', False))
         signals = strategy.calculate_signals(renko_data)
         portfolio = strategy.backtest(renko_data, signals, self.initial_capital)
         

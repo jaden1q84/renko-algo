@@ -65,14 +65,16 @@ class RenkoBacktester:
                                  atr_period=params['atr_period'],
                                  atr_multiplier=params['atr_multiplier'],
                                  symbol=self.args.symbol,
-                                 brick_size=self.args.brick_size)
+                                 brick_size=self.args.brick_size,
+                                 save_data=getattr(self.args, 'save_data', False))
         renko_data = renko_gen.generate_renko(df)
         params['brick_size'] = renko_gen.get_brick_size() if params['brick_size'] is None else params['brick_size']
         brick_size_str = "NA" if params['brick_size'] is None else f"{params['brick_size']:.2f}"
         
         strategy = RenkoStrategy(buy_trend_length=params['buy_trend_length'],
                                sell_trend_length=params['sell_trend_length'],
-                               symbol=self.args.symbol)
+                               symbol=self.args.symbol,
+                               save_data=getattr(self.args, 'save_data', False))
         signals = strategy.calculate_signals(renko_data)
         portfolio_value = strategy.backtest(renko_data, signals, initial_capital=1000000)
         
