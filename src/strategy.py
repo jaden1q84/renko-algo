@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 class RenkoStrategy:
-    def __init__(self, buy_trend_length=3, sell_trend_length=3, symbol=None):
+    def __init__(self, buy_trend_length=3, sell_trend_length=3, symbol=None, save_data=False):
         """
         初始化Renko策略
         
@@ -11,10 +11,12 @@ class RenkoStrategy:
             buy_trend_length (int): 买入信号所需的趋势长度
             sell_trend_length (int): 卖出信号所需的趋势长度
             symbol (str): 股票代码
+            save_data (bool): 是否保存回测结果到文件
         """
         self.buy_trend_length = buy_trend_length
         self.sell_trend_length = sell_trend_length
         self.symbol = symbol
+        self.save_data = save_data
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
@@ -178,11 +180,19 @@ class RenkoStrategy:
         final_return = (portfolio.iloc[-1]['total'] - initial_capital) / initial_capital
         self.logger.info(f"回测完成 - 最终总资产: {portfolio.iloc[-1]['total']:,.2f}, "
                         f"总收益率: {final_return:.2%}")
-        # 将portfolio保存成CSV文件
-        # start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
-        # end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
-        # file_name = f"data/portfolio-{self.symbol}-{start_date}-{end_date}.csv"
-        # portfolio.to_csv(file_name, index=False)
-        # self.logger.info(f"投资组合已保存至: {file_name}")
+        
+        # 保存portfolio到文件（根据参数）
+        if self.save_data:
+            self._save_data(portfolio)
         
         return portfolio 
+
+    def _save_data(self, portfolio):
+        """
+        保存投资组合到CSV文件
+        """
+        start_date = portfolio.iloc[0]['date'].strftime('%Y%m%d')
+        end_date = portfolio.iloc[-1]['date'].strftime('%Y%m%d')
+        file_name = f"data/{self.symbol}-portfolio-{start_date}-{end_date}.csv"
+        portfolio.to_csv(file_name, index=False)
+        self.logger.info(f"投资组合已保存至: {file_name}")
