@@ -50,6 +50,7 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 - `--optimize`: 是否进行参数优化（可选）
 - `--max_iterations`: 最大优化迭代次数（可选，默认500）
 - `--batch`: 是否以批处理模式运行（可选）
+- `--save_data`: 是否保存中间Renko等中间数据文件，默认不保存（可选）
 
 ## 示例
 
