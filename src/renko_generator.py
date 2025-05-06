@@ -145,8 +145,11 @@ class RenkoGenerator:
                         open_price = current_price
                         close_price = current_price + self.brick_size
                         current_price += self.brick_size
+                        
+                        # 合并横盘砖块
                         if len(renko_data) > 0 and (close_price == renko_data[-1]['open'] or close_price == renko_data[-1]['close']):
-                            continue
+                            renko_data.pop()
+                        
                         renko_data.append({
                             'index': index,
                             'date': data.index[i],
@@ -161,8 +164,11 @@ class RenkoGenerator:
                         open_price = current_price
                         close_price = current_price - self.brick_size
                         current_price -= self.brick_size
+
+                        # 合并横盘砖块
                         if len(renko_data) > 0 and (close_price == renko_data[-1]['open'] or close_price == renko_data[-1]['close']):
-                            continue
+                            renko_data.pop()
+                            
                         renko_data.append({
                             'index': index,
                             'date': data.index[i],
