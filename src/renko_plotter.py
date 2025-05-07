@@ -124,7 +124,7 @@ class RenkoPlotter:
             
     def _plot_portfolio_value(self, ax):
         """绘制投资组合价值"""
-        ax.set_title(f'Portfolio Value - {self.symbol}')
+        ax.set_title(f'Portfolio Value - {self.symbol}', fontsize=10)
         ax.plot(self.portfolio_value.index, self.portfolio_value['total'], 'b-')
         
         max_idx = self.portfolio_value['total'].idxmax()
