@@ -2,43 +2,41 @@
 
 # 定义要测试的股票列表
 SYMBOLS=(
-    "688041.SH"
-    "688981.SH"
-    "603986.SH"
-    "601127.SH"
+    "688041.SS"
+    "688981.SS"
+    "603986.SS"
+    "601127.SS"
     "300454.SZ"
-    "688111.SH"
+    "688111.SS"
     "002456.SZ"
-    "600809.SH"
-    "600702.SH"
-    "00700.HK"
-    "02331.HK"
-    "688692.SH"
+    "600809.SS"
+    "600702.SS"
+    "0700.HK"
+    "2331.HK"
+    "688692.SS"
     "002594.SZ"
-    "600570.SH"
+    "600570.SS"
     "000776.SZ"
-    "01810.HK"
-    "601888.SH"
-    "688318.SH"
-    "600036.SH"
+    "1810.HK"
+    "601888.SS"
+    "688318.SS"
+    "600036.SS"
     "300454.SZ"
-    "688578.SH"
+    "688578.SS"
     "002410.SZ"
-    "688347.SH"
-    "688017.SH"
-    "688256.SH"
-    "09992.HK"
+    "688347.SS"
+    "688017.SS"
+    "688256.SS"
+    "9992.HK"
 )
 
 # 设置默认参数值
-TOKEN=""
 START_DATE="2025-01-01"
 END_DATE="2025-05-01"
 
 # 处理命令行参数
 while getopts "t:s:e:" opt; do
   case $opt in
-    t) TOKEN="$OPTARG" ;;
     s) START_DATE="$OPTARG" ;;
     e) END_DATE="$OPTARG" ;;
     \?) echo "无效的选项: -$OPTARG" >&2; exit 1 ;;
@@ -53,7 +51,6 @@ mkdir -p logs
 for SYMBOL in "${SYMBOLS[@]}"; do
     # 使用nohup在后台运行，并将输出重定向到日志文件
     nohup python src/main.py \
-        --token "$TOKEN" \
         --symbol "$SYMBOL" \
         --start_date "$START_DATE" \
         --end_date "$END_DATE" \

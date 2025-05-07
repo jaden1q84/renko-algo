@@ -12,6 +12,5 @@ dependencies:
     - matplotlib>=3.4.0
     - yfinance>=0.1.70
     - backtrader>=1.9.76.123
-    - tushare>=1.2.89 
     - mplfinance>=0.12.9b7 
     - pyyaml>=6.0.2

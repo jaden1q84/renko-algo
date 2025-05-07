@@ -15,16 +15,18 @@ class RenkoPlotter:
         self.portfolio_value = None
         self.signals = None
         self.symbol = None
+        self.symbol_info = None
         self.best_params = None
         self.start_date = None
         self.end_date = None
         
-    def set_data(self, renko_data, portfolio_value, signals, symbol, best_params=None):
+    def set_data(self, renko_data, portfolio_value, signals, symbol, symbol_info, best_params=None):
         """设置绘图所需的数据"""
         self.renko_data = renko_data
         self.portfolio_value = portfolio_value
         self.signals = signals
         self.symbol = symbol
+        self.symbol_info = symbol_info
         self.best_params = best_params
         self.start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
         self.end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
@@ -50,7 +52,7 @@ class RenkoPlotter:
     
     def _plot_renko_chart(self, ax):
         """绘制K线图表"""
-        title = f'{self.symbol} - {self.start_date} ~ {self.end_date}'
+        title = f'{self.symbol}-{self.symbol_info["shortName"]} - {self.start_date} ~ {self.end_date}'
         if self.best_params:
             brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
             title += f"\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
@@ -128,7 +130,8 @@ class RenkoPlotter:
         max_idx = self.portfolio_value['total'].idxmax()
         last_idx = self.portfolio_value.index[-1]
         
-        self._annotate_portfolio_point(ax, max_idx, 'Max', 'yellow')
+        if max_idx != last_idx:
+            self._annotate_portfolio_point(ax, max_idx, 'Max', 'yellow')
         self._annotate_portfolio_point(ax, last_idx, 'Final', 'lightblue')
         
         # 设置X轴标签
@@ -153,7 +156,7 @@ class RenkoPlotter:
         
     def _save_and_show_plot(self, showout):
         """保存和显示图表"""
-        file_name = f"{self.output_dir}/{self.symbol}-{self.start_date}-{self.end_date}.png"
+        file_name = f"{self.output_dir}/{self.symbol}-{self.symbol_info['shortName']}-{self.start_date}-{self.end_date}.png"
         plt.tight_layout()
         plt.savefig(file_name)
         

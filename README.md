@@ -34,11 +34,10 @@ conda activate renko-algo
 
 2. 运行回测：
 ```bash
-python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-01-01 --end_date 2023-12-31
+python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31
 ```
 
 3. 参数说明：
-- `--token`: tushare.pro API访问令牌（必需）
 - `--symbol`: 股票代码（必需）
 - `--start_date`: 开始日期（必需）
 - `--end_date`: 结束日期（必需）
@@ -56,17 +55,17 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 
 1. 标准回测：
 ```bash
-python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-01-01 --end_date 2023-12-31 --renko_mode atr --atr_period 14 --atr_multiplier 1.0 --buy_trend_length 3 --sell_trend_length 3
+python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31 --renko_mode atr --atr_period 14 --atr_multiplier 1.0 --buy_trend_length 3 --sell_trend_length 3
 ```
 
 2. 参数优化回测：
 ```bash
-python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-01-01 --end_date 2023-12-31 --optimize --max_iterations 500
+python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31 --optimize --max_iterations 500
 ```
 
 3. 批处理模式：
 ```bash
-python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-01-01 --end_date 2023-12-31 --batch
+python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31 --batch
 ```
 
 ## 输出说明
@@ -84,7 +83,6 @@ python src/main.py --token YOUR_API_TOKEN --symbol 688041.SH --start_date 2023-0
 
 ## 注意事项
 
-1. 确保API token有效，自行到 https://tushare.pro/ 注册并获取tokon
-2. 数据获取可能需要一定时间，请耐心等待
-3. 参数优化可能需要较长时间，建议先在小数据集上测试
-4. 批处理模式下不会显示图形界面 
+1. 数据获取可能需要一定时间，请耐心等待
+2. 参数优化可能需要较长时间，建议先在小数据集上测试
+3. 批处理模式下不会显示图形界面 

@@ -4,8 +4,7 @@ from renko_backtester import RenkoBacktester
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description='Renko策略回测程序')
-    parser.add_argument('--token', required=True, help='API访问令牌')
-    parser.add_argument('--symbol', required=True, help='股票代码，例如：688041.SH')
+    parser.add_argument('--symbol', required=True, help='股票代码，例如：688041.SS')
     parser.add_argument('--start_date', required=True, help='开始日期，格式：YYYY-MM-DD')
     parser.add_argument('--end_date', required=True, help='结束日期，格式：YYYY-MM-DD')
     parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='atr', 
