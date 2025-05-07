@@ -127,7 +127,8 @@ class BacktestOptimizer:
                 'buy_trend_length': buy_trend_length,
                 'sell_trend_length': sell_trend_length,
                 'return': final_return,
-                'portfolio': portfolio
+                'portfolio': portfolio,
+                'brick_size': 0
             })
         
     def _test_atr_mode(self, atr_period: int, atr_multiplier: float, buy_trend_length: int, sell_trend_length: int):

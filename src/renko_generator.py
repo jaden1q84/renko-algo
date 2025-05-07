@@ -4,7 +4,7 @@ from typing import Literal
 import logging
 
 class RenkoGenerator:
-    def __init__(self, mode: Literal['daily', 'atr'] = 'daily', atr_period: int = 10, 
+    def __init__(self, mode: Literal['daily', 'atr'] = 'atr', atr_period: int = 10, 
                  atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None, 
                  save_data: bool = False):
         """
