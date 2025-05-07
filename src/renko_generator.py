@@ -184,7 +184,7 @@ class RenkoGenerator:
                         })
                         index += 1
 
-        # 如果K线后几天的价格没形成1个砖块区间，就补一块不完整的砖
+        # 如果K线后几天的价格没形成1个砖块区间，就补一块不完整的砖，trend为0，不参与回测
         if len(renko_data) > 0:
             last_brick_date = renko_data[-1]['date']
             last_k_date = data.index[-1]
@@ -198,7 +198,7 @@ class RenkoGenerator:
                     'high': last_k_price if last_k_price > last_brick_price else last_brick_price,
                     'low': last_k_price if last_k_price < last_brick_price else last_brick_price,
                     'close': last_k_price,
-                    'trend': 1 if last_k_price > last_brick_price else -1
+                    'trend': 0
                 })
                 index += 1
         
