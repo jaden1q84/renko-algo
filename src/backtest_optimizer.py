@@ -24,6 +24,7 @@ class BacktestOptimizer:
         self.initial_capital = self.config.initial_capital
         self.results = []
         self.results_lock = threading.Lock()  # 用于线程安全的锁
+        self.best_result = None
         
         # 配置日志
         logging.basicConfig(level=logging.INFO,
@@ -172,7 +173,7 @@ class BacktestOptimizer:
         self.logger.info("-" * 80)
         
         # 按收益率排序
-        sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=True)
+        sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=False)
         
         for i, result in enumerate(sorted_results, 1):
             mode_str = f"模式: {result['mode']}"
@@ -184,19 +185,21 @@ class BacktestOptimizer:
             self.logger.info(f"   收益率: {result['return']:.2%}")
             
         # 输出最优参数
-        best_result = sorted_results[0]
+        self.best_result = sorted_results[-1]
         self.logger.info("========================最优参数组合=========================")
-        self.logger.info(f"模式: {best_result['mode']}")
-        if best_result['mode'] == 'atr':
-            self.logger.info(f"ATR周期: {best_result['atr_period']}")
-            self.logger.info(f"ATR倍数: {best_result['atr_multiplier']}")
-        self.logger.info(f"买入趋势长度: {best_result['buy_trend_length']}")
-        self.logger.info(f"卖出趋势长度: {best_result['sell_trend_length']}")
-        self.logger.info(f"收益率: {best_result['return']:.2%}")
-        self.logger.info(f"砖型大小: {best_result['brick_size']:.2f}")
+        self.logger.info(f"模式: {self.best_result['mode']}")
+        if self.best_result['mode'] == 'atr':
+            self.logger.info(f"ATR周期: {self.best_result['atr_period']}")
+            self.logger.info(f"ATR倍数: {self.best_result['atr_multiplier']}")
+        self.logger.info(f"买入趋势长度: {self.best_result['buy_trend_length']}")
+        self.logger.info(f"卖出趋势长度: {self.best_result['sell_trend_length']}")
+        self.logger.info(f"收益率: {self.best_result['return']:.2%}")
+        self.logger.info(f"砖型大小: {self.best_result['brick_size']:.2f}")
         self.logger.info("===========================================================")
 
     def get_best_parameters(self) -> Dict:
         """获取最优参数组合"""
-        sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=True)
-        return sorted_results[0] 
+        if self.best_result == None:
+            sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=False)
+            self.best_result = sorted_results[-1]
+        return self.best_result 
