@@ -52,7 +52,7 @@ class RenkoPlotter:
     
     def _plot_renko_chart(self, ax):
         """绘制K线图表"""
-        title = f'{self.symbol}-{self.symbol_info["shortName"]} - {self.start_date} ~ {self.end_date}'
+        title = f'{self.symbol} - {self.symbol_info["shortName"]} - {self.start_date} ~ {self.end_date}'
         if self.best_params:
             brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
             title += f"\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
@@ -124,7 +124,7 @@ class RenkoPlotter:
             
     def _plot_portfolio_value(self, ax):
         """绘制投资组合价值"""
-        ax.set_title(f'Portfolio Value - {self.symbol}', fontsize=10)
+        ax.set_title(f'Portfolio Value', fontsize=10)
         ax.plot(self.portfolio_value.index, self.portfolio_value['total'], 'b-')
         
         max_idx = self.portfolio_value['total'].idxmax()
