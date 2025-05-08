@@ -31,9 +31,13 @@ SYMBOLS=(
     "600415.SS"
 )
 
-# 设置默认参数值
-START_DATE="2025-01-01"
-END_DATE="2025-05-01"
+# 设置默认参数值，END_DATE 为当前日期，START_DATE 为当前日期前180天
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    START_DATE=$(date -v-180d +%Y-%m-%d) # macOS 的 date 命令
+else
+    START_DATE=$(date -d "180 days ago" +%Y-%m-%d) # Linux 的 date 命令
+fi
+END_DATE=$(date +%Y-%m-%d)
 
 # 处理命令行参数
 while getopts "t:s:e:" opt; do

@@ -1,12 +1,13 @@
 import argparse
+from datetime import datetime, timedelta
 from renko_backtester import RenkoBacktester
 
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description='Renko策略回测程序')
     parser.add_argument('--symbol', required=True, help='股票代码，例如：688041.SS')
-    parser.add_argument('--start_date', required=True, help='开始日期，格式：YYYY-MM-DD')
-    parser.add_argument('--end_date', required=True, help='结束日期，格式：YYYY-MM-DD')
+    parser.add_argument('--start_date', default=None, help='开始日期，格式：YYYY-MM-DD')
+    parser.add_argument('--end_date', default=None, help='结束日期，格式：YYYY-MM-DD')
     parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='atr', 
                        help='Renko生成模式：atr（基于ATR）或daily（基于日线），默认atr')
     parser.add_argument('--atr_period', type=int, default=10, help='ATR周期（仅当renko_mode=atr时有效）')
@@ -24,6 +25,11 @@ def parse_arguments():
 def main():
     """主函数"""
     args = parse_arguments()
+    if args.start_date is None:
+        args.start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
+    if args.end_date is None:
+        args.end_date = datetime.now().strftime('%Y-%m-%d')
+        
     backtester = RenkoBacktester(args)
     backtester.run_backtest()
 
