@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 class RenkoPlotter:
-    def __init__(self, output_dir='data'):
+    def __init__(self, output_dir='results'):
         self.output_dir = output_dir
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)

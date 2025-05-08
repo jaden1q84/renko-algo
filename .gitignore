@@ -37,6 +37,10 @@ ENV/
 data/*
 !data/.gitkeep
 
+# Results
+results/*
+!results/.gitkeep
+
 # Logs
 *.log
 
