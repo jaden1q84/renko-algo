@@ -45,6 +45,9 @@ class RenkoBacktester:
                     f"买入趋势长度: {best_params['buy_trend_length']}, 卖出趋势长度: {best_params['sell_trend_length']}\n"
                     f"--renko_mode {best_params['mode']} --atr_period {best_params['atr_period']} --atr_multiplier {best_params['atr_multiplier']} "
                     f"--buy_trend_length {best_params['buy_trend_length']} --sell_trend_length {best_params['sell_trend_length']} --brick_size {best_params['brick_size']:.2f}")
+        self.logger.info(f"最后信号: {best_params['last_signal']}")
+        self.logger.info(f"最后信号日期: {best_params['last_signal_date']}")
+        self.logger.info(f"最后信号价格: {best_params['last_price']:.2f}")
         self.logger.info("===========================================================")
         
         self._run_backtest_with_params(df, best_params, showout=not self.args.batch)
@@ -91,9 +94,7 @@ class RenkoBacktester:
         self.logger.info(f"初始资金: {initial_capital:.2f}")
         self.logger.info(f"最终资金: {final_capital:.2f}")
         self.logger.info(f"收益率: {return_pct:.2f}%")
-
-        # 打印砖形图最后一行数据，辅助判断后续策略
-        self.logger.info(f"renko_data最后一行: \n{renko_data.iloc[-1]}")
+        self.logger.info(f"最后信号: {signals.iloc[-1].signal}, 日期: {signals.iloc[-1].date.strftime('%Y-%m-%d')}, 价格: {renko_data.iloc[-1].close:.2f}")
         
         # 使用绘图器绘制结果
         self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_info, params)

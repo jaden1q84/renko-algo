@@ -1,3 +1,4 @@
+from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplfinance as mpf
@@ -156,9 +157,21 @@ class RenkoPlotter:
         
     def _save_and_show_plot(self, showout):
         """保存和显示图表"""
-        file_name = f"{self.output_dir}/{self.symbol}-{self.symbol_info['shortName']}-{self.start_date}-{self.end_date}.png"
+        action = "Buy" if self.signals.iloc[-1].signal == 1 else "Sell" if self.signals.iloc[-1].signal == -1 else "NA"
+        output_dir = f"{self.output_dir}"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        file_name = f"[{action}]{self.symbol}-{self.symbol_info['shortName']}-{self.start_date}-{self.end_date}.png"
         plt.tight_layout()
-        plt.savefig(file_name)
+        plt.savefig(os.path.join(output_dir, file_name))
+
+        log_dir = "results"
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+        
+        log_file = os.path.join(log_dir, f"backtest-results-{datetime.now().strftime('%Y-%m-%d')}.log")
+        with open(log_file, 'a') as log:
+            log.write(file_name + '\n')
         
         if showout:
             plt.show() 

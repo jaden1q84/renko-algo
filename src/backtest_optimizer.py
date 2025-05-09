@@ -129,7 +129,10 @@ class BacktestOptimizer:
                 'sell_trend_length': sell_trend_length,
                 'return': final_return,
                 'portfolio': portfolio,
-                'brick_size': 0
+                'brick_size': 0,
+                'last_signal': signals.iloc[-1].signal,
+                'last_signal_date': signals.iloc[-1].date.strftime('%Y-%m-%d'),
+                'last_price': renko_data.iloc[-1].close
             })
         
     def _test_atr_mode(self, atr_period: int, atr_multiplier: float, buy_trend_length: int, sell_trend_length: int):
@@ -164,7 +167,10 @@ class BacktestOptimizer:
                 'sell_trend_length': sell_trend_length,
                 'return': final_return,
                 'portfolio': portfolio,
-                'brick_size': brick_size
+                'brick_size': brick_size,
+                'last_signal': signals.iloc[-1].signal,
+                'last_signal_date': signals.iloc[-1].date.strftime('%Y-%m-%d'),
+                'last_price': renko_data.iloc[-1].close
             })
         
     def _print_optimization_results(self):
@@ -195,6 +201,9 @@ class BacktestOptimizer:
         self.logger.info(f"卖出趋势长度: {self.best_result['sell_trend_length']}")
         self.logger.info(f"收益率: {self.best_result['return']:.2%}")
         self.logger.info(f"砖型大小: {self.best_result['brick_size']:.2f}")
+        self.logger.info(f"最后信号: {self.best_result['last_signal']}")
+        self.logger.info(f"最后信号日期: {self.best_result['last_signal_date']}")
+        self.logger.info(f"最后信号价格: {self.best_result['last_price']:.2f}")
         self.logger.info("===========================================================")
 
     def get_best_parameters(self) -> Dict:
