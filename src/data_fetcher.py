@@ -55,7 +55,6 @@ class DataFetcher:
         """
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
-        end_date = (datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
         
         # 检查内存缓存
         cache_key = f"{symbol}_{start_date}_{end_date}_{interval}"
@@ -73,7 +72,10 @@ class DataFetcher:
             # 获取数据
             ticker = yf.Ticker(symbol)
             self.symbol_info = ticker.info
-            df = ticker.history(start=start_date, end=end_date, interval=interval)
+
+            # yfinance库加一天才能获取到end当天
+            real_end_date = (datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
+            df = ticker.history(start=start_date, end=real_end_date, interval=interval)
             
             if df.empty:
                 raise ValueError(f"无法获取{symbol}的数据")
