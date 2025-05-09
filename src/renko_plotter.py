@@ -167,7 +167,12 @@ class RenkoPlotter:
         
     def _save_and_show_plot(self):
         """保存和显示图表"""
-        action = "Buy" if self.signals.iloc[-1].signal == 1 else "Sell" if self.signals.iloc[-1].signal == -1 else "NA"
+        action = "NA"
+        if self.signals.iloc[-1].signal == 1 or self.signals.iloc[-2].signal == 1:
+            action = "Buy"
+        elif self.signals.iloc[-1].signal == -1 or self.signals.iloc[-2].signal == -1:
+            action = "Sell"
+
         output_dir = f"{self.output_dir}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)

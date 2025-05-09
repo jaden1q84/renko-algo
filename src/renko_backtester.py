@@ -95,7 +95,7 @@ class RenkoBacktester:
         self.logger.info(f"初始资金: {initial_capital:.2f}")
         self.logger.info(f"最终资金: {final_capital:.2f}")
         self.logger.info(f"收益率: {return_pct:.2f}%")
-        self.logger.info(f"最后信号: {signals.iloc[-1].signal}, 日期: {signals.iloc[-1].date.strftime('%Y-%m-%d')}, 价格: {renko_data.iloc[-1].close:.2f}")
+        self.logger.info(f"最后2个信号: {signals.iloc[-2].signal}, {signals.iloc[-1].signal}, 日期: {signals.iloc[-1].date.strftime('%Y-%m-%d')}, 价格: {renko_data.iloc[-1].close:.2f}")
         
         # 使用绘图器绘制结果
         self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_info, params)
