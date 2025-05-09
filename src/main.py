@@ -18,7 +18,7 @@ def parse_arguments():
     parser.add_argument('--max_iterations', type=int, default=None, help='最大优化迭代次数')
     parser.add_argument('--batch', action='store_true', help='是否以批处理模式运行（不显示图形）')
     parser.add_argument('--brick_size', type=float, default=None, help='砖块颗粒度')
-    parser.add_argument('--threads', type=int, default=None, help='多线程数量，默认为1')
+    parser.add_argument('--threads', type=int, default=None, help='多线程数量')
     parser.add_argument('--save_data', action='store_true', help='是否保存中间Renko、portfolio等中间数据文件，默认不保存')
     return parser.parse_args()
 
