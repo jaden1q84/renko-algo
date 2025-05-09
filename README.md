@@ -48,7 +48,6 @@ python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12
 - `--sell_trend_length`: 卖出信号所需的趋势长度（可选，默认3）
 - `--optimize`: 是否进行参数优化（可选）
 - `--max_iterations`: 最大优化迭代次数（可选，默认500）
-- `--batch`: 是否以批处理模式运行（可选）
 - `--save_data`: 是否保存中间Renko等中间数据文件，默认不保存（可选）
 
 ## 示例
@@ -70,7 +69,7 @@ python src/main.py --symbol 688041.SS --start_date 2025-01-01 --end_date 2025-05
 
 3. 批处理模式，不弹出绘图窗口，仅保存到results目录：
 ```bash
-python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31 --batch
+python src/main.py --symbol-list config/symbol_list.json --start_date 2025-01-01 --end_date 2025-05-01
 ```
 
 4. 批处理脚本，自行修改 batch_test.sh 内的股票列表
@@ -81,7 +80,7 @@ python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12
 ## 输出说明
 
 - 回测结果将保存在 `results` 目录下
-- 图片文件名格式：`{symbol}_{start_date}_{end_date}.png`
+- 图片文件名格式：`[Buy|Sell|NA]{symbol}_{start_date}_{end_date}.png`
 - 控制台输出包括：
   - 数据获取信息
   - 回测参数

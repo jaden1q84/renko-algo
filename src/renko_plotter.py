@@ -1,11 +1,17 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import mplfinance as mpf
 import os
 import pandas as pd
+import threading
 
 class RenkoPlotter:
+    _plot_lock = threading.Lock()  # 类变量，所有实例共享
+
     def __init__(self, output_dir='results'):
         self.output_dir = output_dir
         if not os.path.exists(output_dir):
@@ -32,24 +38,28 @@ class RenkoPlotter:
         self.start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
         self.end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
     
-    def plot_results(self, showout=1):
+    def plot_results(self):
         """绘制回测结果"""
-        if any(v is None for v in [self.renko_data, self.portfolio_value, self.signals, self.symbol]):
-            raise ValueError("请先使用set_data方法设置数据")
+        result_path = None  # 用于存储结果路径
+        with RenkoPlotter._plot_lock:
+            if any(v is None for v in [self.renko_data, self.portfolio_value, self.signals, self.symbol]):
+                raise ValueError("请先使用set_data方法设置数据")
             
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 9))
+            fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(16, 9))
+            
+            # 绘制Renko图
+            self._plot_renko_chart(ax1)
+            self._plot_signals(ax1)
+            
+            # 绘制投资组合价值
+            self._plot_portfolio_value(ax2)
+            
+            # 保存和显示结果
+            ax1.margins(y=0.2)
+            ax2.margins(y=0.2)
+            result_path = self._save_and_show_plot()
         
-        # 绘制Renko图
-        self._plot_renko_chart(ax1)
-        self._plot_signals(ax1)
-        
-        # 绘制投资组合价值
-        self._plot_portfolio_value(ax2)
-        
-        # 保存和显示结果
-        ax1.margins(y=0.2)
-        ax2.margins(y=0.2)
-        self._save_and_show_plot(showout)
+        return result_path
     
     def _plot_renko_chart(self, ax):
         """绘制K线图表"""
@@ -155,7 +165,7 @@ class RenkoPlotter:
                    arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'),
                    fontsize=7)
         
-    def _save_and_show_plot(self, showout):
+    def _save_and_show_plot(self):
         """保存和显示图表"""
         action = "Buy" if self.signals.iloc[-1].signal == 1 else "Sell" if self.signals.iloc[-1].signal == -1 else "NA"
         output_dir = f"{self.output_dir}"
@@ -172,6 +182,6 @@ class RenkoPlotter:
         log_file = os.path.join(log_dir, f"backtest-results-{datetime.now().strftime('%Y-%m-%d')}.log")
         with open(log_file, 'a') as log:
             log.write(file_name + '\n')
-        
-        if showout:
-            plt.show() 
+
+        plt.close()
+        return f"{output_dir}/{file_name}"

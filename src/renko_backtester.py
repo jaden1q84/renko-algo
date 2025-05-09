@@ -50,7 +50,7 @@ class RenkoBacktester:
         self.logger.info(f"最后信号价格: {best_params['last_price']:.2f}")
         self.logger.info("===========================================================")
         
-        self._run_backtest_with_params(df, best_params, showout=not self.args.batch)
+        self._run_backtest_with_params(df, best_params)
     
     def _run_standard_backtest(self, df):
         """运行标准回测"""
@@ -63,9 +63,9 @@ class RenkoBacktester:
             'brick_size': None
         }
         
-        self._run_backtest_with_params(df, params, showout=not self.args.batch)
+        self._run_backtest_with_params(df, params)
     
-    def _run_backtest_with_params(self, df, params, showout):
+    def _run_backtest_with_params(self, df, params):
         """使用指定参数运行回测"""
         renko_gen = RenkoGenerator(mode=params['mode'],
                                  atr_period=params['atr_period'],
@@ -89,7 +89,8 @@ class RenkoBacktester:
         final_capital = portfolio_value['total'].iloc[-1]
         return_pct = (final_capital - initial_capital) / initial_capital * 100
         
-        self.logger.info(f"回测参数：--renko_mode {params['mode']} --atr_period {params['atr_period']} --atr_multiplier {params['atr_multiplier']} "
+        self.logger.info(f"回测参数：--symbol {self.args.symbol} --start_date {self.args.start_date} --end_date {self.args.end_date} "
+                         f"--renko_mode {params['mode']} --atr_period {params['atr_period']} --atr_multiplier {params['atr_multiplier']} "
                          f"--buy_trend_length {params['buy_trend_length']} --sell_trend_length {params['sell_trend_length']} --brick_size {brick_size_str}")
         self.logger.info(f"初始资金: {initial_capital:.2f}")
         self.logger.info(f"最终资金: {final_capital:.2f}")
@@ -98,4 +99,6 @@ class RenkoBacktester:
         
         # 使用绘图器绘制结果
         self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_info, params)
-        self.plotter.plot_results(showout) 
+        result_path = self.plotter.plot_results()
+        self.logger.info(f"回测结果已保存到: {result_path}")
+        return result_path
