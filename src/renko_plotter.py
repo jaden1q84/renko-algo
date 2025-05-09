@@ -171,9 +171,9 @@ class RenkoPlotter:
     def _save_and_show_plot(self):
         """保存和显示图表"""
         action = "NA"
-        if self.signals.iloc[-1].signal == 1 or self.signals.iloc[-2].signal == 1:
+        if self.signals.iloc[-1].signal == 1:
             action = "Buy"
-        elif self.signals.iloc[-1].signal == -1 or self.signals.iloc[-2].signal == -1:
+        elif self.signals.iloc[-1].signal == -1:
             action = "Sell"
 
         output_dir = f"{self.output_dir}"
