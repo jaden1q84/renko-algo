@@ -13,6 +13,7 @@ class DataFetcher:
         """
         self.data_cache = {}
         self.symbol_info = None
+        self.symbol_info_db = {}
         
         # 创建缓存目录
         self.cache_dir = cache_dir
@@ -103,10 +104,38 @@ class DataFetcher:
             dict: 包含股票基本信息的字典，如果获取失败则返回None
         """
         try:
-            if self.symbol_info is None:
-                ticker = yf.Ticker(symbol)
-                self.symbol_info = ticker.info
+            # 如果symbol_info_db为空，则从CSV文件加载股票代码和名称
+            if len(self.symbol_info_db) == 0:
+                self._load_symbol_info_from_csv()
+
+            symbol = symbol.split('.')[0]
+            self.symbol_info = self.symbol_info_db[symbol]
+            print(f"****************获取股票信息: {self.symbol_info}")
             return self.symbol_info
         except Exception as e:
             print(f"获取股票信息时发生错误: {str(e)}")
             return None 
+
+    def _load_symbol_info_from_csv(self, csv_path='data/stock_info_a_code_name.csv'):
+        """
+        从CSV文件加载股票代码和名称到 symbol_info_db
+
+        Args:
+            csv_path (str): CSV文件路径
+        """
+        try:
+            # 检查文件是否存在
+            if not os.path.exists(csv_path):
+                # 如果不存在，自动用 akshare 获取并保存
+                import akshare as ak
+                df = ak.stock_info_a_code_name()
+                os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+                df.to_csv(csv_path, index=False)
+                print(f"已自动下载股票信息到 {csv_path}")
+
+            df = pd.read_csv(csv_path, dtype=str)
+            # 构建字典，key为code，value为name
+            self.symbol_info_db = dict(zip(df['code'], df['name']))
+            print(f"已加载{len(self.symbol_info_db)}只股票信息")
+        except Exception as e:
+            print(f"加载股票信息失败: {str(e)}") 

@@ -1,8 +1,8 @@
 import akshare as ak
 import json
 
-# stock_info_a_code_name_df = ak.stock_info_a_code_name()
-# stock_info_a_code_name_df.to_csv("data/stock_info_a_code_name.csv", index=False)
+stock_info_a_code_name_df = ak.stock_info_a_code_name()
+stock_info_a_code_name_df.to_csv("data/stock_info_a_code_name.csv", index=False)
 
 stock_info_sh_df = ak.stock_info_sh_name_code(symbol="主板A股")
 stock_info_sh_df.to_csv("data/stock_info_sh.csv", index=False)
