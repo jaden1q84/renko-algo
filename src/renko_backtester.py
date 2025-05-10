@@ -13,7 +13,7 @@ class RenkoBacktester:
         self.fetcher = DataFetcher()
         self.fetcher.init_stock_info()  # 初始化股票信息
         config = RenkoConfig()
-        self.plotter = RenkoPlotter(recent_signal_days=config.recent_signal_days)
+        self.plotter = RenkoPlotter(recent_signal_days=config.recent_signal_days, target_return=config.target_return)
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',

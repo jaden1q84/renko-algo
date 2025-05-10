@@ -55,6 +55,7 @@ class RenkoConfig:
         self.max_workers = backtest_config.get('max_workers', 1)
         self.initial_capital = backtest_config.get('initial_capital', 1000000)
         self.recent_signal_days = min(5, int(backtest_config.get('recent_signal_days', 3)))
+        self.target_return = float(backtest_config.get('target_return', 15))
         
         # 策略参数
         self.atr_periods = optimization_parameters.get('atr_periods', [3, 5, 10, 15])
@@ -67,7 +68,9 @@ class RenkoConfig:
             'backtest_config': {
                 'max_iterations': self.max_iterations,
                 'max_workers': self.max_workers,
-                'initial_capital': self.initial_capital
+                'initial_capital': self.initial_capital,
+                'recent_signal_days': self.recent_signal_days,
+                'target_return': self.target_return
             },
             'optimization_parameters': {
                 'atr_periods': self.atr_periods,

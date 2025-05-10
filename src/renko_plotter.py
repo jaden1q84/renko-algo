@@ -12,9 +12,10 @@ import threading
 class RenkoPlotter:
     _plot_lock = threading.Lock()  # 类变量，所有实例共享
 
-    def __init__(self, output_dir='results', recent_signal_days=3):
+    def __init__(self, output_dir='results', recent_signal_days=3, target_return=15):
         self.output_dir = output_dir
         self.recent_signal_days = recent_signal_days
+        self.target_return = target_return
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
@@ -173,10 +174,16 @@ class RenkoPlotter:
         """保存和显示图表"""
         # 获取最近N天的信号
         action = "NA"
-        recent_signals = self.signals.iloc[-self.recent_signal_days:]
-        for idx, signal in recent_signals.iterrows():
-            if signal['signal'] != 0:
-                action = "Buy" if signal['signal'] == 1 else "Sell"
+
+        # 最终受益大于15%才标记买卖信号
+        value = self.portfolio_value.iloc[idx]['total']
+        initial_value = self.portfolio_value['total'].iloc[0]
+        ratio = (value / initial_value - 1) * 100
+        if ratio > self.target_return:
+            recent_signals = self.signals.iloc[-self.recent_signal_days:]
+            for idx, signal in recent_signals.iterrows():
+                if signal['signal'] != 0:
+                    action = "Buy" if signal['signal'] == 1 else "Sell"
 
         output_dir = f"{self.output_dir}"
         if not os.path.exists(output_dir):
