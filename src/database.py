@@ -70,3 +70,19 @@ class DataBase:
             self.logger.info(f"DB insert数据最后1条: {f"Date: {df.index[-1]}；{df.iloc[-1].to_dict()}"}")
             self.conn.executemany(sql, data)
             self.conn.commit() 
+
+    def get_last_date(self, symbol, interval):
+        with self.lock:
+            table_name = f"stock_hist_data_{interval}"
+            sql = f'''SELECT date FROM {table_name}
+                     WHERE symbol=? ORDER BY date DESC LIMIT 1'''
+            cur = self.conn.execute(sql, (symbol,))
+            return cur.fetchone()[0]
+
+    def get_first_date(self, symbol, interval):
+        with self.lock:
+            table_name = f"stock_hist_data_{interval}"
+            sql = f'''SELECT date FROM {table_name}
+                     WHERE symbol=? ORDER BY date ASC LIMIT 1'''
+            cur = self.conn.execute(sql, (symbol,))
+            return cur.fetchone()[0]
