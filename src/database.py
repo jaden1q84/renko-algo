@@ -45,11 +45,16 @@ class DataBase:
             df = pd.DataFrame(rows, columns=["Date", "Open", "High", "Low", "Close", "Volume", "Turnover"])
             df["Date"] = pd.to_datetime(df["Date"])
             df.set_index("Date", inplace=True)
-            # 打印前3条记录
-            self.logger.info(f"DB fetch结果前3条: {df.head(3).to_dict(orient='records')}")
+            # 打印第1条记录和最后1条记录
+            self.logger.info(f"DB fetch结果第1条: {f"Date: {df.index[0]}；{df.iloc[0].to_dict()}"}")
+            self.logger.info(f"DB fetch结果最后1条: {f"Date: {df.index[-1]}；{df.iloc[-1].to_dict()}"}")
             return df
 
     def insert(self, symbol, df, interval):
+        if df.empty:
+            self.logger.error(f"插入数据为空: symbol={symbol}, interval={interval}")
+            return
+        
         with self.lock:
             # 避免重复插入，采用INSERT OR IGNORE
             table_name = f"stock_hist_data_{interval}"
@@ -60,7 +65,8 @@ class DataBase:
                 (symbol, idx.strftime('%Y-%m-%d'), row.Open, row.High, row.Low, row.Close, row.Volume, row.Turnover, interval)
                 for idx, row in df.iterrows()
             ]
-            # 打印前3条记录
-            self.logger.info(f"DB insert数据前3条: {df.head(3).to_dict(orient='records')}")
+            # 打印插入第1条记录和最后1条记录
+            self.logger.info(f"DB insert数据第1条: {f"Date: {df.index[0]}；{df.iloc[0].to_dict()}"}")
+            self.logger.info(f"DB insert数据最后1条: {f"Date: {df.index[-1]}；{df.iloc[-1].to_dict()}"}")
             self.conn.executemany(sql, data)
             self.conn.commit() 

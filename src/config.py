@@ -54,6 +54,8 @@ class RenkoConfig:
         # 新增缓存控制
         self.use_db_cache = config.get('use_db_cache', True)
         self.use_csv_cache = config.get('use_csv_cache', True)
+        # 新增query_method
+        self.query_method = config.get('query_method', 'akshare')
         # 优化参数
         self.max_iterations = backtest_config.get('max_iterations', 10000)
         self.max_workers = backtest_config.get('max_workers', 1)
@@ -71,6 +73,7 @@ class RenkoConfig:
         config = {
             'use_db_cache': self.use_db_cache,
             'use_csv_cache': self.use_csv_cache,
+            'query_method': self.query_method,
             'backtest_config': {
                 'max_iterations': self.max_iterations,
                 'max_workers': self.max_workers,

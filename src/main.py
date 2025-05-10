@@ -38,7 +38,7 @@ def main():
     """主函数"""
     args = parse_arguments()
     config = RenkoConfig()
-    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache)
+    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
     data_fetcher.init_stock_info()
 
     if args.symbol_list:
