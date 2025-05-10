@@ -2,6 +2,7 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import os
+import akshare as ak
 
 class DataFetcher:
     def __init__(self, cache_dir='data'):
@@ -49,14 +50,24 @@ class DataFetcher:
             symbol (str): 股票代码
             start_date (str): 开始日期，格式为'YYYY-MM-DD'
             end_date (str, optional): 结束日期，格式为'YYYY-MM-DD'，默认为今天
-            interval (str, optional): 数据间隔，可选值：'1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo'
-            
+            interval (str, optional): 数据间隔，可选值：'1d', '1wk', '1mo'（akshare不支持分钟级别）
         Returns:
             pd.DataFrame: 包含OHLCV数据的数据框
         """
+
+        if not symbol.endswith('.HK') and not symbol.endswith('.SZ') and not symbol.endswith('.SS'):
+            raise ValueError(f"A/H股仅支持港股代码，收到: {symbol}")
+        
+        # 如果symbol是数字，则认为是港股
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
-        
+            
+        # interval到period的映射
+        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
+        if interval not in interval_map:
+            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
+        period = interval_map[interval]  
+              
         # 检查内存缓存
         cache_key = f"{symbol}_{start_date}_{end_date}_{interval}"
         if cache_key in self.data_cache:
@@ -68,27 +79,31 @@ class DataFetcher:
         if cached_df is not None:
             self.data_cache[cache_key] = cached_df
             return cached_df
-            
+        
         try:
-            # 获取数据
-            ticker = yf.Ticker(symbol)
-            self.symbol_info = ticker.info
-
-            # yfinance库加一天才能获取到end当天
-            real_end_date = (datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')
-            df = ticker.history(start=start_date, end=real_end_date, interval=interval)
-            
-            if df.empty:
-                raise ValueError(f"无法获取{symbol}的数据")
+            # 判断股票类型（A股/港股）
+            if symbol.endswith('.HK'):
+                df = ak.stock_hk_hist(symbol=symbol.split('.')[0], period=period, start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
+            else:
+                df = ak.stock_zh_a_hist(symbol=symbol.split('.')[0], period=period, start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
+            # 字段兼容
+            df.rename(columns={
+                '日期': 'Date',
+                '开盘': 'Open',
+                '收盘': 'Close',
+                '最高': 'High',
+                '最低': 'Low',
+                '成交量': 'Volume',
+                '成交额': 'Turnover',
+            }, inplace=True)
+            df['Date'] = pd.to_datetime(df['Date'])
+            df.set_index('Date', inplace=True)
 
             # 保存到内存缓存
             self.data_cache[cache_key] = df
-            
             # 保存到本地缓存
             self._save_to_cache(df, cache_file)
-            
             return df
-            
         except Exception as e:
             print(f"获取数据时发生错误: {str(e)}")
             return None 
@@ -127,7 +142,6 @@ class DataFetcher:
             # 检查文件是否存在
             if not os.path.exists(csv_path):
                 # 如果不存在，自动用 akshare 获取并保存
-                import akshare as ak
                 df = ak.stock_info_a_code_name()
                 os.makedirs(os.path.dirname(csv_path), exist_ok=True)
                 df.to_csv(csv_path, index=False)
