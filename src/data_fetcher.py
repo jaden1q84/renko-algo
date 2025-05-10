@@ -7,16 +7,19 @@ import json
 from database import DataBase
 
 class DataFetcher:
-    def __init__(self, cache_dir='data'):
+    def __init__(self, cache_dir='data', use_db_cache=True, use_csv_cache=True):
         """
         初始化数据获取器
         
         Args:
             cache_dir (str): 本地缓存目录
+            use_db_cache (bool): 是否使用数据库缓存
+            use_csv_cache (bool): 是否使用本地csv缓存
         """
         self.data_cache = {}
         self.symbol_info_db = {}
-
+        self.use_db_cache = use_db_cache
+        self.use_csv_cache = use_csv_cache
         # 创建缓存目录
         self.cache_dir = cache_dir
         if not os.path.exists(cache_dir):
@@ -81,20 +84,22 @@ class DataFetcher:
         cache_key = f"{symbol}_{start_date}_{end_date}_{interval}"
         if cache_key in self.data_cache:
             return self.data_cache[cache_key]
-            
         # 检查数据库
-        df = self.db.fetch(symbol, start_date, end_date, interval)
-        if df is not None:
-            self.data_cache[cache_key] = df
-            return df
+        if self.use_db_cache:
+            df = self.db.fetch(symbol, start_date, end_date, interval)
+            if df is not None:
+                self.data_cache[cache_key] = df
+                return df
         
         # 检查本地缓存
         cache_file = self._get_cache_filename(symbol, start_date, end_date, interval)
-        cached_df = self._load_from_cache(cache_file)
-        if cached_df is not None:
-           self.data_cache[cache_key] = cached_df
-           self.db.insert(symbol, cached_df, interval)
-           return cached_df
+        if self.use_csv_cache:
+            cached_df = self._load_from_cache(cache_file)
+            if cached_df is not None:
+                self.data_cache[cache_key] = cached_df
+                if self.use_db_cache:
+                    self.db.insert(symbol, cached_df, interval)
+                return cached_df
         
         try:
             # 判断股票类型（A股/港股）
@@ -118,9 +123,11 @@ class DataFetcher:
             # 保存到内存缓存
             self.data_cache[cache_key] = df 
             # 保存到本地缓存
-            self._save_to_cache(df, cache_file)
+            if self.use_csv_cache:
+                self._save_to_cache(df, cache_file)
             # 保存到数据库
-            self.db.insert(symbol, df, interval)
+            if self.use_db_cache:
+                self.db.insert(symbol, df, interval)
             return df
         except Exception as e:
             print(f"获取数据时发生错误: {str(e)}")

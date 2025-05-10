@@ -5,6 +5,7 @@ from data_fetcher import DataFetcher
 import json
 import os
 import concurrent.futures
+from config import RenkoConfig
 
 def parse_arguments():
     """解析命令行参数"""
@@ -36,7 +37,8 @@ def parse_arguments():
 def main():
     """主函数"""
     args = parse_arguments()
-    data_fetcher = DataFetcher()
+    config = RenkoConfig()
+    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache)
     data_fetcher.init_stock_info()
 
     if args.symbol_list:

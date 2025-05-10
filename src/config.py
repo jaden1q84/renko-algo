@@ -25,6 +25,8 @@ class RenkoConfig:
     def use_default_config(self):
         """使用默认配置"""
         default_config = {
+            'use_db_cache': True,
+            'use_csv_cache': True,
             'backtest_config': {
                 'max_iterations': 10000,
                 'max_workers': 1,
@@ -49,7 +51,9 @@ class RenkoConfig:
         """设置配置参数"""
         backtest_config = config.get('backtest_config', {})
         optimization_parameters = config.get('optimization_parameters', {})
-        
+        # 新增缓存控制
+        self.use_db_cache = config.get('use_db_cache', True)
+        self.use_csv_cache = config.get('use_csv_cache', True)
         # 优化参数
         self.max_iterations = backtest_config.get('max_iterations', 10000)
         self.max_workers = backtest_config.get('max_workers', 1)
@@ -65,6 +69,8 @@ class RenkoConfig:
     def save_config(self):
         """保存当前配置到文件"""
         config = {
+            'use_db_cache': self.use_db_cache,
+            'use_csv_cache': self.use_csv_cache,
             'backtest_config': {
                 'max_iterations': self.max_iterations,
                 'max_workers': self.max_workers,

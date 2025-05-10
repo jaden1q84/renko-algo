@@ -1,3 +1,7 @@
+# 是否使用数据库缓存
+use_db_cache: true
+# 是否使用本地CSV缓存
+use_csv_cache: true
 # 回测相关配置
 backtest_config:
   max_iterations: 100000        # 最大迭代次数
