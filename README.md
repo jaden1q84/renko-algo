@@ -34,11 +34,11 @@ conda activate renko-algo
 
 2. 运行回测：
 ```bash
-python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12-31
+python src/main.py --symbol 688041 --start_date 2023-01-01 --end_date 2023-12-31
 ```
 
 3. 参数说明：
-- `--symbol`: 股票代码（必需），注意：上证 .SS 后缀，深证 .SZ 后缀，港股 .HK 后缀
+- `--symbol`: 股票代码（必需），注意：港股需要加 .HK 后缀
 - `--start_date`: 开始日期（可选，默认取过去180天）
 - `--end_date`: 结束日期（可选，默认取今天日期）
 - `--renko_mode`: Renko生成模式（可选，默认atr）
@@ -54,17 +54,21 @@ python src/main.py --symbol 688041.SS --start_date 2023-01-01 --end_date 2023-12
 
 0. 自动参数优化回测（推荐）：
 ```bash
-python src/main.py --symbol 688041.SS --optimize
+# A股直接代码
+python src/main.py --symbol 688041 --optimize
+
+# 港股代码需要加 .HK
+python src/main.py --symbol 00700.HK --optimize
 ```
 
 1. 默认回测（自动取过去180天，默认周期和趋势）：
 ```bash
-python src/main.py --symbol 688041.SS
+python src/main.py --symbol 688041
 ```
 
 2. 指定周期、趋势标准回测：
 ```bash
-python src/main.py --symbol 688041.SS --start_date 2025-01-01 --end_date 2025-05-01 --renko_mode atr --atr_period 5 --atr_multiplier 0.5 --buy_trend_length 2 --sell_trend_length 2
+python src/main.py --symbol 688041 --start_date 2025-01-01 --end_date 2025-05-01 --renko_mode atr --atr_period 5 --atr_multiplier 0.5 --buy_trend_length 2 --sell_trend_length 2
 ```
 
 3. 批处理模式，不弹出绘图窗口，仅保存到results目录：

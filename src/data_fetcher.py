@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 import akshare as ak
-
+import json
 class DataFetcher:
     def __init__(self, cache_dir='data'):
         """
@@ -15,11 +15,19 @@ class DataFetcher:
         self.data_cache = {}
         self.symbol_name = None
         self.symbol_info_db = {}
-        
+
         # 创建缓存目录
         self.cache_dir = cache_dir
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
+        
+        self.FILE_STOCK_INFO_SH = os.path.join(self.cache_dir, "stock_info_sh.csv")
+        self.FILE_STOCK_INFO_SH_KCB = os.path.join(self.cache_dir, "stock_info_sh_kcb.csv")
+        self.FILE_STOCK_INFO_SZ = os.path.join(self.cache_dir, "stock_info_sz.csv")
+        self.FILE_STOCK_INFO_HK = os.path.join(self.cache_dir, "stock_info_hk.csv")
+        self.FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(self.cache_dir, "stock_info_ah_code_name.csv")
+        self.FILE_STOCK_AH_CODES_ALL = os.path.join(self.cache_dir, "stock_ah_codes_all.json")
+        
             
     def _get_cache_filename(self, symbol, start_date, end_date, interval):
         """生成缓存文件名"""
@@ -118,37 +126,61 @@ class DataFetcher:
             dict: 包含股票基本信息的字典，如果获取失败则返回None
         """
         try:
-            # 如果symbol_info_db为空，则从CSV文件加载股票代码和名称
-            if len(self.symbol_info_db) == 0:
-                self._load_symbol_info_from_csv()
-
-            symbol = symbol.split('.')[0]
             self.symbol_name = self.symbol_info_db[symbol]
-            print(f"****************获取股票信息: {self.symbol_name}")
             return self.symbol_name
         except Exception as e:
             print(f"获取股票信息时发生错误: {str(e)}")
             return None 
 
-    def _load_symbol_info_from_csv(self, csv_path='data/stock_info_a_code_name.csv'):
+    def init_stock_info(self):
         """
-        从CSV文件加载股票代码和名称到 symbol_info_db
-
-        Args:
-            csv_path (str): CSV文件路径
+        获取A股、科创板、深市、港股的股票信息，保存为csv和json文件。
         """
-        try:
-            # 检查文件是否存在
-            if not os.path.exists(csv_path):
-                # 如果不存在，自动用 akshare 获取并保存
-                df = ak.stock_info_a_code_name()
-                os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-                df.to_csv(csv_path, index=False)
-                print(f"已自动下载股票信息到 {csv_path}")
-
-            df = pd.read_csv(csv_path, dtype=str)
-            # 构建字典，key为code，value为name
+        if os.path.exists(self.FILE_STOCK_INFO_AH_CODE_NAME):
+            df = pd.read_csv(self.FILE_STOCK_INFO_AH_CODE_NAME, dtype=str)
             self.symbol_info_db = dict(zip(df['code'], df['name']))
             print(f"已加载{len(self.symbol_info_db)}只股票信息")
-        except Exception as e:
-            print(f"加载股票信息失败: {str(e)}") 
+            return
+
+        if not os.path.exists(self.FILE_STOCK_INFO_SH):
+            stock_info_sh_df = ak.stock_info_sh_name_code(symbol="主板A股")
+            stock_info_sh_df["证券代码"] = stock_info_sh_df["证券代码"].astype(str)
+            stock_info_sh_df.to_csv(self.FILE_STOCK_INFO_SH, index=False)
+        else:
+            stock_info_sh_df = pd.read_csv(self.FILE_STOCK_INFO_SH, dtype={"证券代码": str})
+
+        if not os.path.exists(self.FILE_STOCK_INFO_SH_KCB):
+            stock_info_sh_df_kcb = ak.stock_info_sh_name_code(symbol="科创板")
+            stock_info_sh_df_kcb["证券代码"] = stock_info_sh_df_kcb["证券代码"].astype(str)
+            stock_info_sh_df_kcb.to_csv(self.FILE_STOCK_INFO_SH_KCB, index=False)
+        else:
+            stock_info_sh_df_kcb = pd.read_csv(self.FILE_STOCK_INFO_SH_KCB, dtype={"证券代码": str})
+
+        if not os.path.exists(self.FILE_STOCK_INFO_SZ):
+            stock_info_sz_df = ak.stock_info_sz_name_code(symbol="A股列表")
+            stock_info_sz_df["A股代码"] = stock_info_sz_df["A股代码"].astype(str)
+            stock_info_sz_df.to_csv(self.FILE_STOCK_INFO_SZ, index=False)
+        else:
+            stock_info_sz_df = pd.read_csv(self.FILE_STOCK_INFO_SZ, dtype={"A股代码": str})
+
+        if not os.path.exists(self.FILE_STOCK_INFO_HK):
+            stock_info_hk_df = ak.stock_hk_spot_em()
+            stock_info_hk_df['代码'] = stock_info_hk_df['代码'].astype(str)
+            stock_info_hk_df.to_csv(self.FILE_STOCK_INFO_HK, index=False)
+        else:
+            stock_info_hk_df = pd.read_csv(self.FILE_STOCK_INFO_HK, dtype={"代码": str})
+
+        # 统一字段名
+        sh_df = stock_info_sh_df.rename(columns={"证券代码": "code", "证券简称": "name"})[["code", "name"]]
+        kcb_df = stock_info_sh_df_kcb.rename(columns={"证券代码": "code", "证券简称": "name"})[["code", "name"]]
+        sz_df = stock_info_sz_df.rename(columns={"A股代码": "code", "A股简称": "name"})[["code", "name"]]
+        hk_df = stock_info_hk_df.rename(columns={"代码": "code", "名称": "name"})[["code", "name"]]
+        hk_df['code'] = hk_df['code'].apply(lambda x: f"{x}.HK")
+
+        # 合并
+        all_df = pd.concat([sh_df, kcb_df, sz_df, hk_df], ignore_index=True)
+        all_df.to_csv(self.FILE_STOCK_INFO_AH_CODE_NAME, index=False)
+
+        # code单独保存为json
+        with open(self.FILE_STOCK_AH_CODES_ALL, 'w', encoding='utf-8') as f:
+            json.dump(all_df['code'].tolist(), f, ensure_ascii=False, indent=2) 

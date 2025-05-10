@@ -27,7 +27,7 @@ class RenkoPlotter:
         self.start_date = None
         self.end_date = None
         
-        plt.rcParams['font.sans-serif'] = ['sans-serif', 'Microsoft YaHei', 'SimHei', 'Heiti TC', 'PingFang SC', 'Arial Unicode MS']  # 指定中文字体
+        plt.rcParams['font.sans-serif'] = ['PingFang SC', 'sans-serif', 'Microsoft YaHei', 'SimHei', 'Heiti TC', 'Arial Unicode MS']  # 指定中文字体
         plt.rcParams['axes.unicode_minus'] = False    # 正常显示负号
         
     def set_data(self, renko_data, portfolio_value, signals, symbol, symbol_info, best_params=None):
@@ -69,7 +69,7 @@ class RenkoPlotter:
         title = f'{self.symbol} - {self.symbol_name} - {self.start_date} ~ {self.end_date}'
         if self.best_params:
             brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
-            title += f"\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
+            title += f"\n\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
             title += f"sell_trend_length={self.best_params['sell_trend_length']}, atr_period={self.best_params['atr_period']}, atr_multiplier={self.best_params['atr_multiplier']}"
         ax.set_title(title, fontsize=10)
         

@@ -8,7 +8,7 @@ import concurrent.futures
 def parse_arguments():
     """解析命令行参数"""
     parser = argparse.ArgumentParser(description='Renko策略回测程序')
-    parser.add_argument('--symbol', required=False, help='股票代码，例如：688041.SS')
+    parser.add_argument('--symbol', required=False, help='股票代码，例如：688041')
     parser.add_argument('--start_date', default=None, help='开始日期，格式：YYYY-MM-DD')
     parser.add_argument('--end_date', default=None, help='结束日期，格式：YYYY-MM-DD')
     parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='atr', 

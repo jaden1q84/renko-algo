@@ -10,6 +10,7 @@ class RenkoBacktester:
         self.args = args
         self.symbol_name = None
         self.fetcher = DataFetcher()
+        self.fetcher.init_stock_info()  # 初始化股票信息
         self.plotter = RenkoPlotter()
         # 配置日志
         logging.basicConfig(level=logging.INFO,
