@@ -7,11 +7,10 @@ import logging
 from config import RenkoConfig
 
 class RenkoBacktester:
-    def __init__(self, args):
+    def __init__(self, args, data_fetcher):
         self.args = args
         self.symbol_name = None
-        self.fetcher = DataFetcher()
-        self.fetcher.init_stock_info()  # 初始化股票信息
+        self.fetcher = data_fetcher
         config = RenkoConfig()
         self.plotter = RenkoPlotter(recent_signal_days=config.recent_signal_days, target_return=config.target_return)
         # 配置日志

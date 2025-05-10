@@ -1,6 +1,7 @@
 import argparse
 from datetime import datetime, timedelta
 from renko_backtester import RenkoBacktester
+from data_fetcher import DataFetcher
 import json
 import os
 import concurrent.futures
@@ -35,6 +36,9 @@ def parse_arguments():
 def main():
     """主函数"""
     args = parse_arguments()
+    data_fetcher = DataFetcher()
+    data_fetcher.init_stock_info()
+
     if args.symbol_list:
         # 读取symbol_list.json
         with open(args.symbol_list, 'r', encoding='utf-8') as f:
@@ -45,13 +49,13 @@ def main():
             import copy
             args_copy = copy.deepcopy(args)
             args_copy.symbol = symbol
-            backtester = RenkoBacktester(args_copy)
+            backtester = RenkoBacktester(args_copy, data_fetcher)
             backtester.run_backtest()
         max_workers = args.threads if args.threads else min(4, len(symbol_list))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             executor.map(run_for_symbol, symbol_list)
     else:
-        backtester = RenkoBacktester(args)
+        backtester = RenkoBacktester(args, data_fetcher)
         backtester.run_backtest()
 
 if __name__ == "__main__":

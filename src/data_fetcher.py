@@ -13,7 +13,6 @@ class DataFetcher:
             cache_dir (str): 本地缓存目录
         """
         self.data_cache = {}
-        self.symbol_name = None
         self.symbol_info_db = {}
 
         # 创建缓存目录
@@ -126,8 +125,8 @@ class DataFetcher:
             dict: 包含股票基本信息的字典，如果获取失败则返回None
         """
         try:
-            self.symbol_name = self.symbol_info_db[symbol]
-            return self.symbol_name
+            symbol_name = self.symbol_info_db[symbol]
+            return symbol_name
         except Exception as e:
             print(f"获取股票信息时发生错误: {str(e)}")
             return None 
@@ -136,7 +135,7 @@ class DataFetcher:
         """
         获取A股、科创板、深市、港股的股票信息，保存为csv和json文件。
         """
-        if os.path.exists(self.FILE_STOCK_INFO_AH_CODE_NAME):
+        if os.path.exists(self.FILE_STOCK_INFO_AH_CODE_NAME) and len(self.symbol_info_db) == 0:
             df = pd.read_csv(self.FILE_STOCK_INFO_AH_CODE_NAME, dtype=str)
             self.symbol_info_db = dict(zip(df['code'], df['name']))
             print(f"已加载{len(self.symbol_info_db)}只股票信息")

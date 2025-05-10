@@ -62,7 +62,7 @@ class RenkoPlotter:
             # 保存和显示结果
             ax1.margins(y=0.2)
             ax2.margins(y=0.2)
-            result_path = self._save_and_show_plot()
+            result_path = self._save_and_show_plot(fig)
         
         return result_path
     
@@ -170,13 +170,13 @@ class RenkoPlotter:
                    arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'),
                    fontsize=7)
         
-    def _save_and_show_plot(self):
+    def _save_and_show_plot(self, fig):
         """保存和显示图表"""
         # 获取最近N天的信号
         action = "NA"
 
         # 最终受益大于15%才标记买卖信号
-        value = self.portfolio_value.iloc[idx]['total']
+        value = self.portfolio_value.iloc[-1]['total']
         initial_value = self.portfolio_value['total'].iloc[0]
         ratio = (value / initial_value - 1) * 100
         if ratio > self.target_return:
@@ -200,5 +200,5 @@ class RenkoPlotter:
         with open(log_file, 'a') as log:
             log.write(file_name + '\n')
 
-        plt.close()
+        plt.close(fig)
         return f"{output_dir}/{file_name}"
