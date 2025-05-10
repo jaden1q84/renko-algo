@@ -34,7 +34,7 @@ class DataFetcher:
         self.FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(self.cache_dir, "stock_info_ah_code_name.csv")
         self.FILE_STOCK_AH_CODES_ALL = os.path.join(self.cache_dir, "stock_ah_codes_all.json")
         
-        self.db = DataBase(os.path.join(self.cache_dir, 'hist_data.db'))
+        self.db = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s',
