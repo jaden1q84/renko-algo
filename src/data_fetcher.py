@@ -155,6 +155,9 @@ class DataFetcher:
                         yf_symbol = f"{symbol}.SS"
                     else:
                         yf_symbol = f"{symbol}.SZ"
+                else:
+                    # 港股减掉第1个数字
+                    yf_symbol = symbol[1:]
 
                 ticker = yf.Ticker(yf_symbol)
                 query_df = ticker.history(start=query_start_date, end=query_end_date, interval=interval)
