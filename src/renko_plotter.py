@@ -22,7 +22,7 @@ class RenkoPlotter:
         self.portfolio_value = None
         self.signals = None
         self.symbol = None
-        self.symbol_info = None
+        self.symbol_name = None
         self.best_params = None
         self.start_date = None
         self.end_date = None
@@ -36,7 +36,7 @@ class RenkoPlotter:
         self.portfolio_value = portfolio_value
         self.signals = signals
         self.symbol = symbol
-        self.symbol_info = symbol_info
+        self.symbol_name = symbol_info
         self.best_params = best_params
         self.start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
         self.end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
@@ -66,7 +66,7 @@ class RenkoPlotter:
     
     def _plot_renko_chart(self, ax):
         """绘制K线图表"""
-        title = f'{self.symbol} - {self.symbol_info} - {self.start_date} ~ {self.end_date}'
+        title = f'{self.symbol} - {self.symbol_name} - {self.start_date} ~ {self.end_date}'
         if self.best_params:
             brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
             title += f"\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
@@ -179,7 +179,7 @@ class RenkoPlotter:
         output_dir = f"{self.output_dir}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        file_name = f"[{action}]{self.symbol}-{self.symbol_info}-{self.start_date}-{self.end_date}.png"
+        file_name = f"[{action}]{self.symbol}-{self.symbol_name}-{self.start_date}-{self.end_date}.png"
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, file_name))
 

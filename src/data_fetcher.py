@@ -13,7 +13,7 @@ class DataFetcher:
             cache_dir (str): 本地缓存目录
         """
         self.data_cache = {}
-        self.symbol_info = None
+        self.symbol_name = None
         self.symbol_info_db = {}
         
         # 创建缓存目录
@@ -55,9 +55,8 @@ class DataFetcher:
             pd.DataFrame: 包含OHLCV数据的数据框
         """
 
-        if not symbol.endswith('.HK') and not symbol.endswith('.SZ') and not symbol.endswith('.SS'):
+        if not symbol.endswith('.HK') and not symbol.isdigit():
             raise ValueError(f"A/H股仅支持港股代码，收到: {symbol}")
-        
         # 如果symbol是数字，则认为是港股
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
@@ -108,7 +107,7 @@ class DataFetcher:
             print(f"获取数据时发生错误: {str(e)}")
             return None 
 
-    def get_info(self, symbol):
+    def get_symbol_name(self, symbol):
         """
         获取股票的基本信息
         
@@ -124,9 +123,9 @@ class DataFetcher:
                 self._load_symbol_info_from_csv()
 
             symbol = symbol.split('.')[0]
-            self.symbol_info = self.symbol_info_db[symbol]
-            print(f"****************获取股票信息: {self.symbol_info}")
-            return self.symbol_info
+            self.symbol_name = self.symbol_info_db[symbol]
+            print(f"****************获取股票信息: {self.symbol_name}")
+            return self.symbol_name
         except Exception as e:
             print(f"获取股票信息时发生错误: {str(e)}")
             return None 

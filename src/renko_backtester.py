@@ -8,7 +8,7 @@ import logging
 class RenkoBacktester:
     def __init__(self, args):
         self.args = args
-        self.symbol_info = None
+        self.symbol_name = None
         self.fetcher = DataFetcher()
         self.plotter = RenkoPlotter()
         # 配置日志
@@ -25,9 +25,9 @@ class RenkoBacktester:
             self.logger.error("无法获取数据")
             return
         
-        self.symbol_info = self.fetcher.get_info(self.args.symbol)
+        self.symbol_name = self.fetcher.get_symbol_name(self.args.symbol)
         self.logger.info(f"获取到{len(df)}条数据")
-        self.logger.debug(f"股票信息: {self.symbol_info}")
+        self.logger.debug(f"股票信息: {self.symbol_name}")
         
         if self.args.optimize:
             self._run_optimized_backtest(df)
@@ -98,7 +98,7 @@ class RenkoBacktester:
         self.logger.info(f"最后2个信号: {signals.iloc[-2].signal}, {signals.iloc[-1].signal}, 日期: {signals.iloc[-1].date.strftime('%Y-%m-%d')}, 价格: {renko_data.iloc[-1].close:.2f}")
         
         # 使用绘图器绘制结果
-        self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_info, params)
+        self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_name, params)
         result_path = self.plotter.plot_results()
         self.logger.info(f"回测结果已保存到: {result_path}")
         return result_path
