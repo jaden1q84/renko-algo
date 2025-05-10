@@ -37,10 +37,11 @@ def get_one_stock_hist_data(symbol, start_date, end_date, interval='1d', query_m
     """
     获取一只股票的历史数据
     """
-    if pd.to_datetime(start_date) > pd.to_datetime(end_date):
-        raise ValueError(f"开始日期{start_date}不能大于结束日期{end_date}")
-
     query_df = pd.DataFrame()
+    if pd.to_datetime(start_date) > pd.to_datetime(end_date):
+        print(f"开始日期{start_date}不能大于结束日期{end_date}")
+        return query_df
+
     db_start_date = get_db_first_date(symbol, interval)
     db_end_date = get_db_last_date(symbol, interval)
 
