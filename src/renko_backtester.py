@@ -4,6 +4,7 @@ from strategy import RenkoStrategy
 from backtest_optimizer import BacktestOptimizer
 from renko_plotter import RenkoPlotter
 import logging
+from config import RenkoConfig
 
 class RenkoBacktester:
     def __init__(self, args):
@@ -11,7 +12,8 @@ class RenkoBacktester:
         self.symbol_name = None
         self.fetcher = DataFetcher()
         self.fetcher.init_stock_info()  # 初始化股票信息
-        self.plotter = RenkoPlotter()
+        config = RenkoConfig()
+        self.plotter = RenkoPlotter(recent_signal_days=config.recent_signal_days)
         # 配置日志
         logging.basicConfig(level=logging.INFO,
                           format='%(asctime)s - %(levelname)s - %(message)s',
