@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import os
 import akshare as ak
 import json
+from database import DataBase
+
 class DataFetcher:
     def __init__(self, cache_dir='data'):
         """
@@ -27,6 +29,7 @@ class DataFetcher:
         self.FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(self.cache_dir, "stock_info_ah_code_name.csv")
         self.FILE_STOCK_AH_CODES_ALL = os.path.join(self.cache_dir, "stock_ah_codes_all.json")
         
+        self.db = DataBase(os.path.join(self.cache_dir, 'hist_data.db'))
             
     def _get_cache_filename(self, symbol, start_date, end_date, interval):
         """生成缓存文件名"""
@@ -79,12 +82,19 @@ class DataFetcher:
         if cache_key in self.data_cache:
             return self.data_cache[cache_key]
             
+        # 检查数据库
+        df = self.db.fetch(symbol, start_date, end_date, interval)
+        if df is not None:
+            self.data_cache[cache_key] = df
+            return df
+        
         # 检查本地缓存
         cache_file = self._get_cache_filename(symbol, start_date, end_date, interval)
         cached_df = self._load_from_cache(cache_file)
         if cached_df is not None:
-            self.data_cache[cache_key] = cached_df
-            return cached_df
+           self.data_cache[cache_key] = cached_df
+           self.db.insert(symbol, cached_df, interval)
+           return cached_df
         
         try:
             # 判断股票类型（A股/港股）
@@ -106,9 +116,11 @@ class DataFetcher:
             df.set_index('Date', inplace=True)
 
             # 保存到内存缓存
-            self.data_cache[cache_key] = df
+            self.data_cache[cache_key] = df 
             # 保存到本地缓存
             self._save_to_cache(df, cache_file)
+            # 保存到数据库
+            self.db.insert(symbol, df, interval)
             return df
         except Exception as e:
             print(f"获取数据时发生错误: {str(e)}")
