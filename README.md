@@ -71,15 +71,38 @@ python src/main.py --symbol 688041
 python src/main.py --symbol 688041 --start_date 2025-01-01 --end_date 2025-05-01 --renko_mode atr --atr_period 5 --atr_multiplier 0.5 --buy_trend_length 2 --sell_trend_length 2
 ```
 
-3. 批处理模式，不弹出绘图窗口，仅保存到results目录：
+3. 批处理模式：
 ```bash
 python src/main.py --symbol-list config/symbol_list.json --start_date 2025-01-01 --end_date 2025-05-01
 ```
 
-4. 批处理脚本，自行修改 batch_test.sh 内的股票列表
-```bash
-./batch_test.sh
-```
+## tools说明
+
+- `get_stockinfo.py`：
+  - 功能：自动获取A股（主板、科创板）、深市、港股的股票基础信息，并保存为csv和json文件，同时写入本地数据库。便于后续批量回测和数据同步。
+  - 用法：
+    ```bash
+    python tools/get_stockinfo.py
+    ```
+    运行后会在 data 目录下生成/更新股票信息相关文件。
+
+- `sync_stock_hist_data.py`：
+  - 功能：批量同步A股和港股的历史行情数据，支持多线程、断点续传，数据可选来源（akshare/yfinance），并写入本地数据库。适合大规模数据准备。
+  - 用法示例：
+    ```bash
+    # 批量同步（推荐，symbol_list为股票代码json文件）
+    python tools/sync_stock_hist_data.py --symbol_list config/symbol_list.json --start_date 2024-01-01 --threads 4
+    
+    # 单只股票同步
+    python tools/sync_stock_hist_data.py --symbol 688041 --start_date 2024-01-01
+    ```
+  - 主要参数：
+    - `--symbol_list`：股票代码列表json文件路径
+    - `--symbol`：单只股票代码
+    - `--start_date`/`--end_date`：同步数据的起止日期，不提供end_date会自动获取今日日期
+    - `--interval`：数据频率（1d/1wk/1mo）
+    - `--query_method`：数据源（akshare/yfinance），默认yfinance
+    - `--threads`：线程数（批量时建议>1）
 
 ## 输出说明
 
