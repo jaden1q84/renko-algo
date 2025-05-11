@@ -17,10 +17,6 @@ class RenkoStrategy:
         self.sell_trend_length = sell_trend_length
         self.symbol = symbol
         self.save_data = save_data
-        # 配置日志
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s',
-                          datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"策略初始化完成 - 股票代码: {symbol}, 买入趋势长度: {buy_trend_length}, 卖出趋势长度: {sell_trend_length}")
         

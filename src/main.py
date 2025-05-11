@@ -13,10 +13,12 @@ import copy
 import logging
 import multiprocessing
 import sys
+from logger_config import setup_logger
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(processName)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S')
+# 确保logs目录存在
+os.makedirs('logs', exist_ok=True)
+
+# 配置根日志记录器
 logger = logging.getLogger(__name__)
 
 def parse_arguments():
@@ -50,7 +52,15 @@ def parse_arguments():
 def run_for_symbol(symbol, args):
     """单个股票的回测函数"""
     try:
-        logger.info(f"开始处理股票 {symbol}")
+        batch_mode = args.symbol_list is not None
+        enable_console = not batch_mode
+        
+        setup_logger(not enable_console) if batch_mode else None
+        logger.info(f"++++++++++++++++++++++开始回测股票 {symbol}")
+        
+        # 根据是否批量处理来配置日志
+        setup_logger(enable_console) if batch_mode else None
+
         args_copy = copy.deepcopy(args)
         args_copy.symbol = symbol
         
@@ -63,7 +73,8 @@ def run_for_symbol(symbol, args):
         backtester.run_backtest()
         backtester.plot_results()
         
-        logger.info(f"完成处理股票 {symbol}")
+        setup_logger(not enable_console) if batch_mode else None
+        logger.info(f"----------------------完成回测股票 {symbol}")
     except Exception as e:
         logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
         raise
@@ -72,6 +83,7 @@ def main():
     """主函数"""
     try:
         args = parse_arguments()
+        setup_logger()
         logger.info(f"程序启动，参数: {args}")
         
         if not args.symbol_list:

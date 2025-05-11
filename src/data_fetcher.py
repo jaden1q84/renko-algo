@@ -36,10 +36,6 @@ class DataFetcher:
         self.FILE_STOCK_AH_SYMBOLS_ALL = os.path.join(self.cache_dir, "stock_ah_symbols_all.json")
         
         self.db = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
-        # 配置日志
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
             
     def _get_cache_filename(self, symbol, start_date, end_date, interval):

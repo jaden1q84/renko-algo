@@ -18,7 +18,6 @@ class RenkoGenerator:
             brick_size (float): 砖块颗粒度
             save_data (bool): 是否保存结果到文件，默认False
         """
-        # 配置日志
         self.mode = mode
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
@@ -26,9 +25,6 @@ class RenkoGenerator:
         self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
         self.brick_size = brick_size
         self.save_data = save_data
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s',
-                          datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
 
     def _calculate_atr(self, data: pd.DataFrame) -> float:

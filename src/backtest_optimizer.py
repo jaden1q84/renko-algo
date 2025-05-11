@@ -25,11 +25,6 @@ class BacktestOptimizer:
         self.results = []
         self.results_lock = threading.Lock()  # 用于线程安全的锁
         self.best_result = None
-        
-        # 配置日志
-        logging.basicConfig(level=logging.INFO,
-                          format='%(asctime)s - %(levelname)s - %(message)s',
-                          datefmt='%Y-%m-%d %H:%M:%S')
         self.logger = logging.getLogger(__name__)
 
         if self.args.threads is not None:
