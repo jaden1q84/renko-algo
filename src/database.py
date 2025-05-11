@@ -83,7 +83,11 @@ class DataBase:
             sql = f'''SELECT date FROM {table_name}
                      WHERE symbol=? ORDER BY date DESC LIMIT 1'''
             cur = self.conn.execute(sql, (symbol,))
-            return cur.fetchone()[0]
+            result = cur.fetchone()
+            if result is None:
+                self.logger.info(f"未找到股票数据: symbol={symbol}, interval={interval}")
+                return None
+            return result[0]
 
     def get_first_date(self, symbol, interval):
         with self.lock:
@@ -91,13 +95,21 @@ class DataBase:
             sql = f'''SELECT date FROM {table_name}
                      WHERE symbol=? ORDER BY date ASC LIMIT 1'''
             cur = self.conn.execute(sql, (symbol,))
-            return cur.fetchone()[0]
+            result = cur.fetchone()
+            if result is None:
+                self.logger.info(f"未找到股票数据: symbol={symbol}, interval={interval}")
+                return None
+            return result[0]
 
     def get_stock_info(self, symbol):
         with self.lock:
             sql = '''SELECT symbol, name FROM stock_info_ah_symbol_name WHERE symbol=?'''
             cur = self.conn.execute(sql, (symbol,))
-            return cur.fetchone()
+            result = cur.fetchone()
+            if result is None:
+                self.logger.info(f"未找到股票数据: symbol={symbol}")
+                return None
+            return result[0]
         
     def get_all_stock_info(self):
         with self.lock:
