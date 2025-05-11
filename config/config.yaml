@@ -5,7 +5,7 @@ use_csv_cache: false
 # 回测相关配置
 backtest_config:
   max_iterations: 100000        # 最大迭代次数
-  max_workers: 4               # 并行执行的最大工作线程数
+  max_threads: 4               # 并行执行的最大工作线程数
   initial_capital: 1000000     # 初始资金
   recent_signal_days: 2        # 仅考虑最近N天的信号
   target_return: 15            # 目标收益率（百分比）

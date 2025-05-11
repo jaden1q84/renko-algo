@@ -34,7 +34,7 @@ class BacktestOptimizer:
 
         if self.args.threads is not None:
             self.logger.info(f"**********使用--threads {self.args.threads}个线程**********")
-            self.config.max_workers = self.args.threads
+            self.config.max_threads = self.args.threads
         if self.args.max_iterations is not None:
             self.logger.info(f"**********使用--max_iterations {self.args.max_iterations}次迭代**********")
             self.config.max_iterations = self.args.max_iterations
@@ -43,7 +43,7 @@ class BacktestOptimizer:
         self.logger.info("**********************本次优化器配置参数**********************")
         self.logger.info(f"初始资金: {self.initial_capital}")
         self.logger.info(f"最大迭代次数: {self.config.max_iterations}")
-        self.logger.info(f"最大线程数: {self.config.max_workers}")
+        self.logger.info(f"最大线程数: {self.config.max_threads}")
         self.logger.info(f"ATR周期选项: {self.config.atr_periods}")
         self.logger.info(f"ATR倍数选项: {self.config.atr_multipliers}")
         self.logger.info(f"趋势长度选项: {self.config.trend_lengths}")
@@ -79,7 +79,7 @@ class BacktestOptimizer:
         tasks = tasks[:self.config.max_iterations]
         
         # 使用线程池执行任务
-        with ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
+        with ThreadPoolExecutor(max_threads=self.config.max_threads) as executor:
             futures = []
             for task in tasks:
                 mode, period, multiplier, buy_length, sell_length = task

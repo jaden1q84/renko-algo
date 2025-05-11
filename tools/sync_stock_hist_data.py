@@ -209,7 +209,7 @@ def sync_stock_hist_data(symbol_list, start_date, end_date, interval='1d', query
             import traceback
             print(f"详细错误信息: {traceback.format_exc()}")
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_threads=threads) as executor:
         futures = [executor.submit(process_symbol, symbol) for symbol in symbol_list]
         for future in concurrent.futures.as_completed(futures):
             try:

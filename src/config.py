@@ -29,7 +29,7 @@ class RenkoConfig:
             'use_csv_cache': True,
             'backtest_config': {
                 'max_iterations': 10000,
-                'max_workers': 1,
+                'max_threads': 1,
                 'initial_capital': 1000000
             },
             'optimization_parameters': {
@@ -58,7 +58,7 @@ class RenkoConfig:
         self.query_method = config.get('query_method', 'akshare')
         # 优化参数
         self.max_iterations = backtest_config.get('max_iterations', 10000)
-        self.max_workers = backtest_config.get('max_workers', 1)
+        self.max_threads = backtest_config.get('max_threads', 1)
         self.initial_capital = backtest_config.get('initial_capital', 1000000)
         self.recent_signal_days = min(5, int(backtest_config.get('recent_signal_days', 3)))
         self.target_return = float(backtest_config.get('target_return', 15))
@@ -76,7 +76,7 @@ class RenkoConfig:
             'query_method': self.query_method,
             'backtest_config': {
                 'max_iterations': self.max_iterations,
-                'max_workers': self.max_workers,
+                'max_threads': self.max_threads,
                 'initial_capital': self.initial_capital,
                 'recent_signal_days': self.recent_signal_days,
                 'target_return': self.target_return
