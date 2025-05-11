@@ -13,6 +13,29 @@ import concurrent.futures
 QUERY_METHOD = 'yfinance'
 STOCK_HIST_DATA_DB = DataBase('data/stock_hist_data.db')
 
+# 判断是否为工作日（A股/港股通用，周一到周五且非节假日）
+def is_workday(date_str):
+    date = pd.to_datetime(date_str)
+    # 周末不是工作日
+    if date.weekday() >= 5:
+        return False
+    # 可选：可扩展节假日判断（这里只判断周末）
+    return True
+
+# 获取最近的工作日（向前找）
+def get_nearest_workday_backward(date_str):
+    date = pd.to_datetime(date_str)
+    while not is_workday(date.strftime('%Y-%m-%d')):
+        date -= timedelta(days=1)
+    return date.strftime('%Y-%m-%d') 
+
+# 获取最近的工作日（向后找）
+def get_nearest_workday_forward(date_str):
+    date = pd.to_datetime(date_str)
+    while not is_workday(date.strftime('%Y-%m-%d')):
+        date += timedelta(days=1)
+    return date.strftime('%Y-%m-%d')
+
 def get_db_first_date(symbol, interval='1d'):
     """
     获取第一条数据日期
@@ -41,12 +64,24 @@ def get_one_stock_hist_data(symbol, start_date, end_date, interval='1d', query_m
     if pd.to_datetime(start_date) > pd.to_datetime(end_date):
         print(f"开始日期{start_date}不能大于结束日期{end_date}")
         return query_df
+    
+    # 如果end_date不是工作日，则调整为最近一个工作日
+    if not is_workday(end_date):
+        new_end_date = get_nearest_workday_backward(end_date)
+        print(f"end_date不是工作日，调整为最近一个工作日: {end_date} -> {new_end_date}")
+        end_date = new_end_date
+
+    # 如果start_date不是工作日，则调整为最近一个工作日
+    if not is_workday(start_date):
+        new_start_date = get_nearest_workday_forward(start_date)
+        print(f"start_date不是工作日，调整为最近一个工作日: {start_date} -> {new_start_date}")
+        start_date = new_start_date
 
     db_start_date = get_db_first_date(symbol, interval)
     db_end_date = get_db_last_date(symbol, interval)
 
     if db_start_date is not None and db_end_date is not None:
-        print(f"股票{symbol}已有历史数据: {db_start_date} -> {db_end_date}")
+        print(f"股票{symbol}最新历史数据范围: {db_start_date.strftime('%Y-%m-%d')} -> {db_end_date.strftime('%Y-%m-%d')}")
         if db_start_date > pd.to_datetime(end_date):
             end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d') # ok
         elif db_end_date < pd.to_datetime(start_date):

@@ -6,6 +6,7 @@ import akshare as ak
 import json
 from database import DataBase
 import logging
+
 class DataFetcher:
     def __init__(self, cache_dir='data', use_db_cache=True, use_csv_cache=True, query_method='akshare'):
         """
@@ -86,6 +87,18 @@ class DataFetcher:
         # 如果symbol是数字，则认为是港股
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
+
+        # 如果start_date不是工作日，则调整为最近一个工作日
+        if not is_workday(start_date):
+            new_start_date = get_nearest_workday_forward(start_date)
+            self.logger.info(f"start_date不是工作日，调整为最近一个工作日: {start_date} -> {new_start_date}")
+            start_date = new_start_date
+
+        # 如果end_date不是工作日，则调整为最近一个工作日
+        if not is_workday(end_date):
+            new_end_date = get_nearest_workday_backward(end_date)
+            self.logger.info(f"end_date不是工作日，调整为最近一个工作日: {end_date} -> {new_end_date}")
+            end_date = new_end_date
             
         # interval到period的映射
         interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
@@ -273,3 +286,26 @@ class DataFetcher:
         # code单独保存为json
         with open(self.FILE_STOCK_AH_CODES_ALL, 'w', encoding='utf-8') as f:
             json.dump(all_df['code'].tolist(), f, ensure_ascii=False, indent=2) 
+
+# 判断是否为工作日（A股/港股通用，周一到周五且非节假日）
+def is_workday(date_str):
+    date = pd.to_datetime(date_str)
+    # 周末不是工作日
+    if date.weekday() >= 5:
+        return False
+    # 可选：可扩展节假日判断（这里只判断周末）
+    return True
+
+# 获取最近的工作日（向前找）
+def get_nearest_workday_backward(date_str):
+    date = pd.to_datetime(date_str)
+    while not is_workday(date.strftime('%Y-%m-%d')):
+        date -= timedelta(days=1)
+    return date.strftime('%Y-%m-%d') 
+
+# 获取最近的工作日（向后找）
+def get_nearest_workday_forward(date_str):
+    date = pd.to_datetime(date_str)
+    while not is_workday(date.strftime('%Y-%m-%d')):
+        date += timedelta(days=1)
+    return date.strftime('%Y-%m-%d')
