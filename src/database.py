@@ -29,7 +29,13 @@ class DataBase:
                 interval TEXT,
                 PRIMARY KEY(symbol, date)
             )'''
+            sql_stock_info = '''CREATE TABLE IF NOT EXISTS stock_info_ah_symbol_name (
+                symbol TEXT NOT NULL,
+                name TEXT NOT NULL,
+                PRIMARY KEY(symbol)
+            )'''
             self.conn.execute(sql)
+            self.conn.execute(sql_stock_info)
             self.conn.commit()
 
     def fetch(self, symbol, start_date, end_date, interval):
@@ -86,3 +92,21 @@ class DataBase:
                      WHERE symbol=? ORDER BY date ASC LIMIT 1'''
             cur = self.conn.execute(sql, (symbol,))
             return cur.fetchone()[0]
+
+    def get_stock_info(self, symbol):
+        with self.lock:
+            sql = '''SELECT symbol, name FROM stock_info_ah_symbol_name WHERE symbol=?'''
+            cur = self.conn.execute(sql, (symbol,))
+            return cur.fetchone()
+        
+    def get_all_stock_info(self):
+        with self.lock:
+            sql = '''SELECT symbol, name FROM stock_info_ah_symbol_name'''
+            cur = self.conn.execute(sql)
+            return cur.fetchall()
+        
+    def insert_stock_info(self, df):
+        with self.lock:
+            sql = '''INSERT OR IGNORE INTO stock_info_ah_symbol_name (symbol, name) VALUES (?, ?)'''
+            self.conn.executemany(sql, df.values)
+            self.conn.commit()

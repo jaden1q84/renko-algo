@@ -1,7 +1,12 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import akshare as ak
 import json
 import pandas as pd
-import os
+from src.database import DataBase
+
+STOCK_HIST_DATA_DB = DataBase('data/stock_hist_data.db')
 
 # 路径和文件名变量
 DATA_DIR = "data"
@@ -9,8 +14,8 @@ FILE_STOCK_INFO_SH = os.path.join(DATA_DIR, "stock_info_sh.csv")
 FILE_STOCK_INFO_SH_KCB = os.path.join(DATA_DIR, "stock_info_sh_kcb.csv")
 FILE_STOCK_INFO_SZ = os.path.join(DATA_DIR, "stock_info_sz.csv")
 FILE_STOCK_INFO_HK = os.path.join(DATA_DIR, "stock_info_hk.csv")
-FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(DATA_DIR, "stock_info_ah_code_name.csv")
-FILE_STOCK_AH_CODES_ALL = os.path.join(DATA_DIR, "stock_ah_codes_all.json")
+FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(DATA_DIR, "stock_info_ah_symbol_name.csv")
+FILE_STOCK_AH_SYMBOLS_ALL = os.path.join(DATA_DIR, "stock_ah_symbols_all.json")
 
 def fetch_and_save_stock_info():
     """
@@ -45,19 +50,22 @@ def fetch_and_save_stock_info():
         stock_info_hk_df = pd.read_csv(FILE_STOCK_INFO_HK, dtype={"代码": str})
 
     # 统一字段名
-    sh_df = stock_info_sh_df.rename(columns={"证券代码": "code", "证券简称": "name"})[["code", "name"]]
-    kcb_df = stock_info_sh_df_kcb.rename(columns={"证券代码": "code", "证券简称": "name"})[["code", "name"]]
-    sz_df = stock_info_sz_df.rename(columns={"A股代码": "code", "A股简称": "name"})[["code", "name"]]
-    hk_df = stock_info_hk_df.rename(columns={"代码": "code", "名称": "name"})[["code", "name"]]
-    hk_df['code'] = hk_df['code'].apply(lambda x: f"{x}.HK")
+    sh_df = stock_info_sh_df.rename(columns={"证券代码": "symbol", "证券简称": "name"})[["symbol", "name"]]
+    kcb_df = stock_info_sh_df_kcb.rename(columns={"证券代码": "symbol", "证券简称": "name"})[["symbol", "name"]]
+    sz_df = stock_info_sz_df.rename(columns={"A股代码": "symbol", "A股简称": "name"})[["symbol", "name"]]
+    hk_df = stock_info_hk_df.rename(columns={"代码": "symbol", "名称": "name"})[["symbol", "name"]]
+    hk_df['symbol'] = hk_df['symbol'].apply(lambda x: f"{x}.HK")
 
     # 合并
     all_df = pd.concat([sh_df, kcb_df, sz_df, hk_df], ignore_index=True)
     all_df.to_csv(FILE_STOCK_INFO_AH_CODE_NAME, index=False)
 
+    # 保存到数据库
+    STOCK_HIST_DATA_DB.insert_stock_info(all_df)
+
     # code单独保存为json
-    with open(FILE_STOCK_AH_CODES_ALL, 'w', encoding='utf-8') as f:
-        json.dump(all_df['code'].tolist(), f, ensure_ascii=False, indent=2)
+    with open(FILE_STOCK_AH_SYMBOLS_ALL, 'w', encoding='utf-8') as f:
+        json.dump(all_df['symbol'].tolist(), f, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
     fetch_and_save_stock_info()
