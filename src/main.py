@@ -50,8 +50,6 @@ def main():
     config = RenkoConfig()
     data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
     data_fetcher.init_stock_info()
-    list_best_results = []
-    list_best_results_lock = threading.Lock()
 
     if not args.symbol_list:
         backtester = RenkoBacktester(args, data_fetcher)
@@ -62,52 +60,17 @@ def main():
         with open(args.symbol_list, 'r', encoding='utf-8') as f:
             symbol_list = json.load(f)
 
-        # 并发回测并存取每个股票的best_result
         def run_for_symbol(symbol):
             args_copy = copy.deepcopy(args)
             args_copy.symbol = symbol
             args_copy.optimize = True
             backtester = RenkoBacktester(args_copy, data_fetcher)
-            best_result = backtester.run_backtest()
-            with list_best_results_lock:
-                list_best_results.append(best_result)
-        
-        def plot_results(result):
-            plotter = RenkoPlotter(recent_signal_days=config.recent_signal_days, target_return=config.target_return)
-            plotter.set_data(result)
-            result_path = plotter.plot_results()
-            logger.info(f"回测结果已保存到: {result_path}")
-
-        # 消费线程函数
-        def consumer():
-            logger.info("开始消费回测结果")
-            while True:
-                with list_best_results_lock:
-                    if list_best_results:
-                        result = list_best_results.pop(0)
-                    else:
-                        result = None
-                if result is not None:
-                    plot_results(result)
-                else:
-                    time.sleep(0.2)
-
-        # 启动消费线程
-        consumer_thread = threading.Thread(target=consumer, daemon=True)
-        consumer_thread.start()
+            backtester.run_backtest()
+            backtester.plot_results()
 
         max_workers = args.threads if args.threads else min(4, len(symbol_list))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             executor.map(run_for_symbol, symbol_list)
-
-        # 等待所有回测线程结束后，等待消费线程处理完所有结果
-        while True:
-            with list_best_results_lock:
-                if not list_best_results:
-                    break
-            time.sleep(0.5)
-        # 给消费线程一点时间处理最后一个结果
-        time.sleep(1)
 
 if __name__ == "__main__":
     main() 
