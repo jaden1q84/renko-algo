@@ -122,6 +122,9 @@ class BacktestOptimizer:
         # 使用锁来安全地添加结果
         with self.results_lock:
             self.results.append({
+                'symbol': self.args.symbol,
+                'start_date': self.args.start_date,
+                'end_date': self.args.end_date,
                 'mode': 'daily',
                 'atr_period': None,
                 'atr_multiplier': None,
@@ -160,13 +163,18 @@ class BacktestOptimizer:
         # 使用锁来安全地添加结果
         with self.results_lock:
             self.results.append({
+                'symbol': self.args.symbol,
                 'mode': 'atr',
                 'atr_period': atr_period,
                 'atr_multiplier': atr_multiplier,
                 'buy_trend_length': buy_trend_length,
                 'sell_trend_length': sell_trend_length,
+                'start_date': self.args.start_date,
+                'end_date': self.args.end_date,
                 'return': final_return,
+                'renko_data': renko_data,
                 'portfolio': portfolio,
+                'signals': signals,
                 'brick_size': brick_size,
                 'last_signal': signals.iloc[-1].signal,
                 'last_signal_date': signals.iloc[-1].date.strftime('%Y-%m-%d'),
@@ -188,11 +196,12 @@ class BacktestOptimizer:
             mode_str += f", 买入趋势长度: {result['buy_trend_length']}, 卖出趋势长度: {result['sell_trend_length']}"
                 
             self.logger.info(f"{i}. {mode_str}")
-            self.logger.info(f"   收益率: {result['return']:.2%}")
+            self.logger.info(f"收益率: {result['return']:.2%}")
             
         # 输出最优参数
         self.best_result = sorted_results[-1]
         self.logger.info("========================最优参数组合=========================")
+        self.logger.info(f"股票代码: {self.best_result['symbol']}")
         self.logger.info(f"模式: {self.best_result['mode']}")
         if self.best_result['mode'] == 'atr':
             self.logger.info(f"ATR周期: {self.best_result['atr_period']}")
@@ -206,7 +215,7 @@ class BacktestOptimizer:
         self.logger.info(f"最后信号价格: {self.best_result['last_price']:.2f}")
         self.logger.info("===========================================================")
 
-    def get_best_parameters(self) -> Dict:
+    def get_best_result(self) -> Dict:
         """获取最优参数组合"""
         if self.best_result == None:
             sorted_results = sorted(self.results, key=lambda x: x['return'], reverse=False)

@@ -25,23 +25,23 @@ class RenkoPlotter:
         self.signals = None
         self.symbol = None
         self.symbol_name = None
-        self.best_params = None
+        self.result = None
         self.start_date = None
         self.end_date = None
         
         plt.rcParams['font.sans-serif'] = ['PingFang SC', 'sans-serif', 'Microsoft YaHei', 'SimHei', 'Heiti TC', 'Arial Unicode MS']  # 指定中文字体
         plt.rcParams['axes.unicode_minus'] = False    # 正常显示负号
         
-    def set_data(self, renko_data, portfolio_value, signals, args, symbol_info, best_params=None):
+    def set_data(self, result):
         """设置绘图所需的数据"""
-        self.renko_data = renko_data
-        self.portfolio_value = portfolio_value
-        self.signals = signals
-        self.symbol = args.symbol
-        self.symbol_name = symbol_info
-        self.best_params = best_params
-        self.start_date = args.start_date
-        self.end_date = args.end_date
+        self.result = result
+        self.renko_data = result['renko_data']
+        self.portfolio_value = result['portfolio']
+        self.signals = result['signals']
+        self.symbol = result['symbol']
+        self.symbol_name = result['symbol_name']
+        self.start_date = result['start_date']
+        self.end_date = result['end_date']
     
     def plot_results(self):
         """绘制回测结果"""
@@ -69,10 +69,10 @@ class RenkoPlotter:
     def _plot_renko_chart(self, ax):
         """绘制K线图表"""
         title = f'{self.symbol} - {self.symbol_name} - {self.start_date} ~ {self.end_date}'
-        if self.best_params:
-            brick_size_str = "NA" if self.best_params['brick_size'] is None else f"{self.best_params['brick_size']:.2f}"
-            title += f"\n\nBest Params: mode={self.best_params['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.best_params['buy_trend_length']}, "
-            title += f"sell_trend_length={self.best_params['sell_trend_length']}, atr_period={self.best_params['atr_period']}, atr_multiplier={self.best_params['atr_multiplier']}"
+        if self.result:
+            brick_size_str = "NA" if self.result['brick_size'] is None else f"{self.result['brick_size']:.2f}"
+            title += f"\n\nBest Params: mode={self.result['mode']}, brick_size=¥{brick_size_str}, buy_trend_length={self.result['buy_trend_length']}, "
+            title += f"sell_trend_length={self.result['sell_trend_length']}, atr_period={self.result['atr_period']}, atr_multiplier={self.result['atr_multiplier']}"
         ax.set_title(title, fontsize=10)
         
         # 准备K线图数据

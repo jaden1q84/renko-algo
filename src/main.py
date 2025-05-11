@@ -6,6 +6,7 @@ import json
 import os
 import concurrent.futures
 from config import RenkoConfig
+import threading
 
 def parse_arguments():
     """解析命令行参数"""
@@ -40,6 +41,8 @@ def main():
     config = RenkoConfig()
     data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
     data_fetcher.init_stock_info()
+    list_best_results = []
+    list_best_results_lock = threading.Lock()
 
     if args.symbol_list:
         # 读取symbol_list.json
@@ -51,14 +54,19 @@ def main():
             import copy
             args_copy = copy.deepcopy(args)
             args_copy.symbol = symbol
+            args_copy.optimize = True
             backtester = RenkoBacktester(args_copy, data_fetcher)
-            backtester.run_backtest()
+            best_result = backtester.run_backtest()
+            backtester.plot_results()
+            # append要加锁
+            with list_best_results_lock:
+                list_best_results.append(best_result)
         max_workers = args.threads if args.threads else min(4, len(symbol_list))
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             executor.map(run_for_symbol, symbol_list)
     else:
         backtester = RenkoBacktester(args, data_fetcher)
         backtester.run_backtest()
-
+        backtester.plot_results()
 if __name__ == "__main__":
     main() 
