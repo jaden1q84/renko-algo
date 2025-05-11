@@ -11,9 +11,11 @@ import threading
 import time
 import copy
 import logging
+import multiprocessing
+import sys
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    format='%(asctime)s - %(processName)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,8 @@ def parse_arguments():
     parser.add_argument('--optimize', action='store_true', help='是否进行参数优化')
     parser.add_argument('--max_iterations', type=int, default=None, help='最大优化迭代次数')
     parser.add_argument('--brick_size', type=float, default=None, help='砖块颗粒度')
-    parser.add_argument('--threads', type=int, default=None, help='多线程数量')
+    parser.add_argument('--threads', type=int, default=None, help='每个进程的多线程数量')
+    parser.add_argument('--workers', type=int, default=1, help='多进程数量，默认1')
     parser.add_argument('--save_data', action='store_true', help='是否保存中间Renko、portfolio等中间数据文件，默认不保存')
     parser.add_argument('--symbol_list', default=None, help='股票代码列表配置文件（JSON数组），如config/symbol_list.json')
     args = parser.parse_args()
@@ -44,33 +47,62 @@ def parse_arguments():
         args.end_date = datetime.now().strftime('%Y-%m-%d')
     return args
 
-def main():
-    """主函数"""
-    args = parse_arguments()
-    config = RenkoConfig()
-    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
-    data_fetcher.init_stock_info()
+def run_for_symbol(symbol, args):
+    """单个股票的回测函数"""
+    try:
+        logger.info(f"开始处理股票 {symbol}")
+        args_copy = copy.deepcopy(args)
+        args_copy.symbol = symbol
+        
+        config = RenkoConfig()
+        data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
+        data_fetcher.init_stock_info()
+        logger.info("数据获取器初始化完成")
 
-    if not args.symbol_list:
-        backtester = RenkoBacktester(args, data_fetcher)
+        backtester = RenkoBacktester(args_copy, data_fetcher)
         backtester.run_backtest()
         backtester.plot_results()
-    else:
-        # 读取symbol_list.json
-        with open(args.symbol_list, 'r', encoding='utf-8') as f:
-            symbol_list = json.load(f)
+        
+        logger.info(f"完成处理股票 {symbol}")
+    except Exception as e:
+        logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
+        raise
 
-        def run_for_symbol(symbol):
-            args_copy = copy.deepcopy(args)
-            args_copy.symbol = symbol
-            args_copy.optimize = True
-            backtester = RenkoBacktester(args_copy, data_fetcher)
-            backtester.run_backtest()
-            backtester.plot_results()
+def main():
+    """主函数"""
+    try:
+        args = parse_arguments()
+        logger.info(f"程序启动，参数: {args}")
+        
+        if not args.symbol_list:
+            run_for_symbol(args.symbol, args)
+        else:
+            # 读取symbol_list.json
+            logger.info(f"开始读取股票列表文件: {args.symbol_list}")
+            with open(args.symbol_list, 'r', encoding='utf-8') as f:
+                symbol_list = json.load(f)
+            logger.info(f"成功读取 {len(symbol_list)} 个股票代码")
 
-        max_workers = args.threads if args.threads else min(4, len(symbol_list))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            executor.map(run_for_symbol, symbol_list)
+            # 使用多进程执行
+            max_workers = args.workers
+            logger.info(f"使用 {max_workers} 个进程进行处理")
+            
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                try:
+                    # 为每个symbol创建任务，传入args和data_fetcher
+                    futures = [executor.submit(run_for_symbol, symbol, args) 
+                             for symbol in symbol_list]
+                    # 等待所有任务完成
+                    concurrent.futures.wait(futures)
+                    logger.info("所有股票处理完成")
+                except Exception as e:
+                    logger.error(f"处理过程中发生错误: {str(e)}", exc_info=True)
+                    raise
+    except Exception as e:
+        logger.error(f"程序执行过程中发生错误: {str(e)}", exc_info=True)
+        sys.exit(1)
 
 if __name__ == "__main__":
+    # 设置多进程启动方法
+    multiprocessing.set_start_method('spawn')
     main() 

@@ -79,7 +79,7 @@ class BacktestOptimizer:
         tasks = tasks[:self.config.max_iterations]
         
         # 使用线程池执行任务
-        with ThreadPoolExecutor(max_threads=self.config.max_threads) as executor:
+        with ThreadPoolExecutor(max_workers=self.config.max_threads) as executor:
             futures = []
             for task in tasks:
                 mode, period, multiplier, buy_length, sell_length = task

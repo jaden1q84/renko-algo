@@ -38,21 +38,25 @@ python src/main.py --symbol 688041 --start_date 2023-01-01 --end_date 2023-12-31
 ```
 
 3. 参数说明：
-- `--symbol`: 股票代码（必需），注意：港股需要加 .HK 后缀
-- `--start_date`: 开始日期（可选，默认取过去180天）
-- `--end_date`: 结束日期（可选，默认取今天日期）
-- `--renko_mode`: Renko生成模式（可选，默认atr）
-- `--atr_period`: ATR周期（可选，默认10）
-- `--atr_multiplier`: ATR乘数（可选，默认0.5）
+- `--symbol`: 股票代码（必需，与--symbol_list二选一），例如：688041
+- `--symbol_list`: 股票代码列表配置文件（JSON数组），如config/symbol_list.json（必需，与--symbol二选一）
+- `--start_date`: 开始日期（可选，默认取过去180天），格式：YYYY-MM-DD
+- `--end_date`: 结束日期（可选，默认取今天日期），格式：YYYY-MM-DD
+- `--renko_mode`: Renko生成模式（可选，默认atr），可选值：atr（基于ATR）或daily（基于日线）
+- `--atr_period`: ATR周期（可选，默认10，仅当renko_mode=atr时有效）
+- `--atr_multiplier`: ATR乘数（可选，默认0.5，仅当renko_mode=atr时有效）
+- `--brick_size`: 砖块颗粒度（可选）
 - `--buy_trend_length`: 买入信号所需的趋势长度（可选，默认3）
 - `--sell_trend_length`: 卖出信号所需的趋势长度（可选，默认3）
 - `--optimize`: 是否进行参数优化（可选）
-- `--max_iterations`: 最大优化迭代次数（可选，默认500）
-- `--save_data`: 是否保存中间Renko等中间数据文件，默认不保存（可选）
+- `--max_iterations`: 最大优化迭代次数（可选）
+- `--threads`: 每个进程的多线程数量（可选）
+- `--workers`: 多进程数量（可选，默认1）
+- `--save_data`: 是否保存中间Renko、portfolio等中间数据文件（可选，默认不保存）
 
 ## 示例
 
-0. 自动参数优化回测（推荐）：
+1. 自动参数优化回测（推荐）：
 ```bash
 # A股直接代码
 python src/main.py --symbol 688041 --optimize
@@ -61,19 +65,19 @@ python src/main.py --symbol 688041 --optimize
 python src/main.py --symbol 00700.HK --optimize
 ```
 
-1. 默认回测（自动取过去180天，默认周期和趋势）：
+2. 默认回测（自动取过去180天，默认周期和趋势）：
 ```bash
 python src/main.py --symbol 688041
 ```
 
-2. 指定周期、趋势标准回测：
+3. 指定周期、趋势标准回测：
 ```bash
 python src/main.py --symbol 688041 --start_date 2025-01-01 --end_date 2025-05-01 --renko_mode atr --atr_period 5 --atr_multiplier 0.5 --buy_trend_length 2 --sell_trend_length 2
 ```
 
-3. 批处理模式：
+4. 批处理参数优化模式：
 ```bash
-python src/main.py --symbol-list config/symbol_list.json --start_date 2025-01-01 --end_date 2025-05-01
+python src/main.py --symbol-list config/symbol_list.json --optimize --start_date 2025-01-01 --end_date 2025-05-01
 ```
 
 ## tools说明
