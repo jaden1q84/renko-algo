@@ -81,10 +81,14 @@ class DataFetcher:
         partial_data = False
         db_end_date = None
         db_df = pd.DataFrame()
+        
+        if symbol.endswith('.SS') or symbol.endswith('.SH') or symbol.endswith('.SZ'):
+            symbol = symbol.split('.')[0]
+        elif symbol.endswith('.HK'):
+            pass
+        elif not symbol.isdigit():
+            raise ValueError(f"不支持的股票代码: {symbol}")
 
-        if not symbol.endswith('.HK') and not symbol.isdigit():
-            raise ValueError(f"A/H股仅支持港股代码，收到: {symbol}")
-        # 如果symbol是数字，则认为是港股
         if end_date is None:
             end_date = datetime.now().strftime('%Y-%m-%d')
 
@@ -228,6 +232,8 @@ class DataFetcher:
             dict: 包含股票基本信息的字典，如果获取失败则返回None
         """
         try:
+            if not symbol.endswith('.HK'):
+                symbol = symbol.split('.')[0]
             symbol_name = self.symbol_info_db[symbol]
             return symbol_name
         except Exception as e:
