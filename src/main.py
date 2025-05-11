@@ -71,10 +71,10 @@ def run_for_symbol(symbol, args):
 
         backtester = RenkoBacktester(args_copy, data_fetcher)
         backtester.run_backtest()
-        backtester.plot_results()
+        result_path = backtester.plot_results()
         
         setup_logger(not enable_console) if batch_mode else None
-        logger.info(f"----------------------完成回测股票 {symbol}")
+        logger.info(f"----------------------完成回测股票 {symbol}，结果保存到 {result_path}")
     except Exception as e:
         logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
         raise
