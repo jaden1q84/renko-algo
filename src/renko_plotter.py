@@ -32,16 +32,16 @@ class RenkoPlotter:
         plt.rcParams['font.sans-serif'] = ['PingFang SC', 'sans-serif', 'Microsoft YaHei', 'SimHei', 'Heiti TC', 'Arial Unicode MS']  # 指定中文字体
         plt.rcParams['axes.unicode_minus'] = False    # 正常显示负号
         
-    def set_data(self, renko_data, portfolio_value, signals, symbol, symbol_info, best_params=None):
+    def set_data(self, renko_data, portfolio_value, signals, args, symbol_info, best_params=None):
         """设置绘图所需的数据"""
         self.renko_data = renko_data
         self.portfolio_value = portfolio_value
         self.signals = signals
-        self.symbol = symbol
+        self.symbol = args.symbol
         self.symbol_name = symbol_info
         self.best_params = best_params
-        self.start_date = renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
-        self.end_date = renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        self.start_date = args.start_date
+        self.end_date = args.end_date
     
     def plot_results(self):
         """绘制回测结果"""
@@ -91,6 +91,19 @@ class RenkoPlotter:
         """绘制交易信号"""
         buy_signals = self.signals[self.signals['signal'] == 1]
         sell_signals = self.signals[self.signals['signal'] == -1]
+        
+        # 绘制第一个砖块
+        first_brick_price = self.renko_data.iloc[0]['close']
+        first_brick_date = self.renko_data.iloc[0]['date']
+        offset_price = self.renko_data.iloc[0]['high'] * 1.01
+        ax.annotate(f'I: {first_brick_price:.2f}\n{first_brick_date.strftime("%Y%m%d")}', 
+                    xy=(0, offset_price),
+                    xytext=(0, 10),
+                    textcoords='offset points',
+                    ha='center',
+                    va='bottom',
+                    color='blue',
+                    fontsize=7)
         
         # 绘制买入信号
         for i in buy_signals.index:

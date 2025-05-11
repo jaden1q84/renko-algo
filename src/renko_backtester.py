@@ -100,7 +100,7 @@ class RenkoBacktester:
         self.logger.info(f"最后2个信号: {signals.iloc[-2].signal}, {signals.iloc[-1].signal}, 日期: {signals.iloc[-1].date.strftime('%Y-%m-%d')}, 价格: {renko_data.iloc[-1].close:.2f}")
         
         # 使用绘图器绘制结果
-        self.plotter.set_data(renko_data, portfolio_value, signals, self.args.symbol, self.symbol_name, params)
+        self.plotter.set_data(renko_data, portfolio_value, signals, self.args, self.symbol_name, params)
         result_path = self.plotter.plot_results()
         self.logger.info(f"回测结果已保存到: {result_path}")
         return result_path
