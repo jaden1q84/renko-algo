@@ -68,6 +68,8 @@ def run_for_symbol(symbol, args):
         data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
         data_fetcher.init_stock_info()
         logger.info("数据获取器初始化完成")
+        
+        data_fetcher.prepare_db_data(args_copy.symbol, args_copy.start_date, args_copy.end_date)
 
         backtester = RenkoBacktester(args_copy, data_fetcher)
         backtester.run_backtest()

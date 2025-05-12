@@ -17,14 +17,14 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-def sync_one_stock_hist_data(symbol, start_date, end_date, interval='1d', query_method='yfinance'):
+def sync_one_stock_hist_data(symbol, start_date, end_date, interval='1d', qmethod='yfinance'):
     """
     同步一只股票的历史数据
     """
-    data_fetcher = DataFetcher()
-    return data_fetcher.prepare_db_data(symbol, start_date, end_date, interval, query_method)
+    data_fetcher = DataFetcher(query_method=qmethod)
+    return data_fetcher.prepare_db_data(symbol, start_date, end_date, interval)
 
-def sync_stocks_hist_data(symbol_list, start_date, end_date, interval='1d', query_method='yfinance', threads=1):
+def sync_stocks_hist_data(symbol_list, start_date, end_date, interval='1d', qmethod='yfinance', threads=1):
     """
     同步多个股票历史数据，支持多线程
     """
@@ -34,8 +34,8 @@ def sync_stocks_hist_data(symbol_list, start_date, end_date, interval='1d', quer
 
     def process_symbol(symbol):
         try:
-            logger.info(f"同步{symbol}: {start_date} -> {end_date}的{interval}历史数据")
-            sync_one_stock_hist_data(symbol, start_date, end_date, interval, query_method)
+            logger.info(f"[START]同步{symbol}: {start_date} -> {end_date}的{interval}历史数据")
+            sync_one_stock_hist_data(symbol, start_date, end_date, interval, qmethod)
         except Exception as e:
             import traceback
             logger.error(f"处理symbol {symbol} 时出错: {str(e)}，详细错误信息: {traceback.format_exc()}")

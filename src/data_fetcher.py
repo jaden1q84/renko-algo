@@ -82,7 +82,7 @@ class DataFetcher:
         else:
             return pd.to_datetime(db_last_date)
         
-    def _prepare_params(self, symbol, start_date, end_date, interval, query_method):
+    def _prepare_params(self, symbol, start_date, end_date, interval):
         """
         入参检查和处理
         """
@@ -115,19 +115,16 @@ class DataFetcher:
         interval_valid = ['1d', '1wk', '1mo']
         if interval not in interval_valid:
             raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
-        
-        if query_method is None or (query_method != "yfinance" and query_method != "akshare"):
-            raise ValueError(f"query_method不能为空，并且只支持yfinance和akshare")
 
-        return adj_symbol, adj_start_date, adj_end_date, interval, query_method
+        return adj_symbol, adj_start_date, adj_end_date, interval
 
-    def prepare_db_data(self, symbol, start_date, end_date=None, interval='1d', query_method="yfinance"):
+    def prepare_db_data(self, symbol, start_date, end_date=None, interval='1d'):
         """
         根据参数准备数据库的数据，对比数据库和网络最新数据，并更新到数据库
         返回True表示数据库数据就绪，False标识失败。
         """
         # 入参检查和处理
-        adj_symbol, adj_start_date, adj_end_date, interval, query_method = self._prepare_params(symbol, start_date, end_date, interval, query_method)
+        adj_symbol, adj_start_date, adj_end_date, interval = self._prepare_params(symbol, start_date, end_date, interval)
         
         if not self.use_db_cache:
             # 如果不用数据库，则直接返回
@@ -141,7 +138,7 @@ class DataFetcher:
         if not db_df.empty:
             for index, row in db_df.iterrows():
                 if row['Timestamp'] and pd.to_datetime(row['Timestamp']) < pd.to_datetime(f"{index} 16:15:00"): # 入库时间戳较收盘时间早，标记需要特殊处理，考虑港股要取16:15:00
-                    self.logger.info(f"股票{adj_symbol}数据库中存在{index}的盘中数据，入库时间戳为{row['Timestamp']}，较收盘时间早，标记需要特殊处理")
+                    self.logger.info(f"[CHECK]股票{adj_symbol}数据库中存在{index}的盘中数据，入库时间戳为{row['Timestamp']}，较收盘时间早，标记需要特殊处理")
                     need_update_data = True
 
         # 开始检查数据库数据情况
@@ -150,7 +147,7 @@ class DataFetcher:
 
         # 检查数据库中是否包含start_date到end_date的数据
         if not need_update_data and db_start_date is not None and db_end_date is not None:
-            self.logger.info(f"股票{adj_symbol}最新历史数据范围: {db_start_date.strftime('%Y-%m-%d')} -> {db_end_date.strftime('%Y-%m-%d')}")
+            self.logger.info(f"[CHECK]股票{adj_symbol}最新历史数据范围: {db_start_date.strftime('%Y-%m-%d')} -> {db_end_date.strftime('%Y-%m-%d')}")
             if db_start_date > pd.to_datetime(adj_end_date):
                 adj_end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更早，则调整adj_end_date为数据库中数据段的前1天
             elif db_end_date < pd.to_datetime(adj_start_date):
@@ -160,13 +157,13 @@ class DataFetcher:
             elif pd.to_datetime(adj_start_date) < db_end_date and db_end_date < pd.to_datetime(adj_end_date):
                 adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更晚，但有部分重叠，则调整adj_start_date为数据库中数据段的后1天
             elif pd.to_datetime(adj_start_date) >= db_start_date and db_end_date >= pd.to_datetime(adj_end_date):
-                self.logger.info(f"股票{adj_symbol}数据库中已包含 {adj_start_date} -> {adj_end_date} 的数据，数据就绪")
+                self.logger.info(f"[DONE]股票{adj_symbol}数据库中已包含 {adj_start_date} -> {adj_end_date} 的数据，数据就绪")
                 return False
     
         # 如果数据库中没有数据，则从网上获取数据
-        self.logger.info(f"[TODO]: 数据库缺少股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据，使用{query_method}获取")
+        self.logger.info(f"[TODO]: 数据库缺少股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据")
         query_df = pd.DataFrame()
-        query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval, query_method)
+        query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval)
         if isinstance(query_df, bool) and query_df is False:
             return False
 
@@ -175,6 +172,7 @@ class DataFetcher:
             self.db.update(adj_symbol, query_df, interval)
         else:
             self.db.insert(adj_symbol, query_df, interval)
+        self.logger.info(f"[DONE]股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据已保存到数据库")
 
         # 保存到内存缓存，下次匹配直接获取
         cache_key = f"{adj_symbol}_{adj_start_date}_{adj_end_date}_{interval}"
@@ -182,7 +180,7 @@ class DataFetcher:
 
         return True
 
-    def get_historical_data(self, symbol, start_date, end_date=None, interval='1d', query_method="yfinance"):
+    def get_historical_data(self, symbol, start_date, end_date=None, interval='1d'):
         """
         获取历史数据
         
@@ -191,15 +189,12 @@ class DataFetcher:
             start_date (str): 开始日期，格式为'YYYY-MM-DD'
             end_date (str, optional): 结束日期，格式为'YYYY-MM-DD'，默认为今天
             interval (str, optional): 数据间隔，可选值：'1d', '1wk', '1mo'（akshare不支持分钟级别）
-            query_method (str, optional): 数据源方式
         Returns:
             pd.DataFrame: 包含OHLCV数据的数据框
         """
         # 入参检查和处理
-        adj_symbol, adj_start_date, adj_end_date, interval, query_method = self._prepare_params(symbol, start_date, end_date, interval, query_method)
-
-        if query_method is None:
-            raise ValueError(f"query_method不能为空")
+        adj_symbol, adj_start_date, adj_end_date, interval = self._prepare_params(symbol, start_date, end_date, interval)
+        query_method = self.query_method
 
         # 先检查内存缓存
         cache_key = f"{adj_symbol}_{adj_start_date}_{adj_end_date}_{interval}"
@@ -208,14 +203,14 @@ class DataFetcher:
 
         # 检查数据库，从数据库返回
         if self.use_db_cache:
-            self.logger.info(f"查询数据库中{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+            self.logger.info(f"[CHECK]查询数据库中{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
             db_df = pd.DataFrame()
             db_df = self.db.fetch(adj_symbol, adj_start_date, adj_end_date, interval)
             if not db_df.empty:
                 self.data_cache[cache_key] = db_df
                 return db_df
             else:
-                self.logger.error(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+                self.logger.warning(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
                 return None
         
         # 检查本地缓存，从本地缓存返回
@@ -226,7 +221,7 @@ class DataFetcher:
                 self.data_cache[cache_key] = csv_df
                 return csv_df
             else:
-                self.logger.error(f"本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+                self.logger.warning(f"[CHECK]本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
 
         # 如果前面都没有获取到数据，则从网上获取数据
         self.logger.info(f"[TODO]: 数据库和本地缓存中没有股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据，使用{query_method}获取")
@@ -373,11 +368,12 @@ class DataFetcher:
             self.logger.error(f"使用yfinance获取{symbol}数据失败: {str(e)}")
             return False
         
-    def _query_stock_data_from_net(self, adj_symbol, adj_start_date, adj_end_date, interval, query_method):
+    def _query_stock_data_from_net(self, adj_symbol, adj_start_date, adj_end_date, interval):
         """
         查询股票数据
         """
         # 从网上获取数据
+        query_method = self.query_method
         query_df = pd.DataFrame()
         adj_end_date = (pd.to_datetime(adj_end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
         if query_method == 'akshare':
@@ -409,7 +405,7 @@ class DataFetcher:
             # query_df增加一列入库时间戳，精确到秒
             query_df['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            self.logger.info(f"获取了 {adj_symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
+            self.logger.info(f"[DONE]获取了 {adj_symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
         else:
             self.logger.warning(f"警告: {adj_symbol} 没有获取到数据")
 
