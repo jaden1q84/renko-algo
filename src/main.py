@@ -56,7 +56,7 @@ def run_for_symbol(symbol, args):
         enable_console = not batch_mode
         
         setup_logger(not enable_console) if batch_mode else None
-        logger.info(f"++++++++++++++++++++++开始回测股票 {symbol}")
+        logger.info(f"\t++++++++++++++++++++++开始回测股票 {symbol}")
         
         # 根据是否批量处理来配置日志
         setup_logger(enable_console) if batch_mode else None
@@ -74,7 +74,7 @@ def run_for_symbol(symbol, args):
         result_path = backtester.plot_results()
         
         setup_logger(not enable_console) if batch_mode else None
-        logger.info(f"----------------------完成回测股票 {symbol}，结果保存到 {result_path}")
+        logger.info(f"\t----------------------完成回测股票 {symbol}\t结果保存到 {result_path}")
     except Exception as e:
         logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
         raise
