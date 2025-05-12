@@ -1,14 +1,17 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import yfinance as yf
 import pandas as pd
 from datetime import datetime, timedelta
 import os
 import akshare as ak
 import json
-from database import DataBase
 import logging
+from src.database import DataBase
 
 class DataFetcher:
-    def __init__(self, cache_dir='data', use_db_cache=True, use_csv_cache=True, query_method='yfinance'):
+    def __init__(self, cache_dir='data', use_db_cache=True, use_csv_cache=False, query_method='yfinance'):
         """
         初始化数据获取器
         
@@ -108,6 +111,11 @@ class DataFetcher:
             adj_end_date = self._get_nearest_workday_backward(end_date)
             self.logger.info(f"end_date不是工作日，调整为最近一个工作日: {end_date} -> {adj_end_date}")
         
+        # interval到period的映射，用于兼容akshare接口
+        interval_valid = ['1d', '1wk', '1mo']
+        if interval not in interval_valid:
+            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
+        
         if query_method is None or (query_method != "yfinance" and query_method != "akshare"):
             raise ValueError(f"query_method不能为空，并且只支持yfinance和akshare")
 
@@ -127,12 +135,6 @@ class DataFetcher:
             return False
         need_update_data = False
 
-        # interval到period的映射，用于兼容akshare接口
-        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
-        if interval not in interval_map:
-            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
-        akshare_period = interval_map[interval]
-        
         # 数据库中有数据不是最终收盘数据，检查记录的入库时间戳，标注要执行update动作。
         db_df = pd.DataFrame()
         db_df = self.db.fetch(adj_symbol, adj_start_date, adj_end_date, interval)
@@ -159,12 +161,14 @@ class DataFetcher:
                 adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更晚，但有部分重叠，则调整adj_start_date为数据库中数据段的后1天
             elif pd.to_datetime(adj_start_date) >= db_start_date and db_end_date >= pd.to_datetime(adj_end_date):
                 self.logger.info(f"股票{adj_symbol}数据库中已包含 {adj_start_date} -> {adj_end_date} 的数据，数据就绪")
-                return True
+                return False
     
         # 如果数据库中没有数据，则从网上获取数据
         self.logger.info(f"[TODO]: 数据库缺少股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据，使用{query_method}获取")
         query_df = pd.DataFrame()
         query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval, query_method)
+        if isinstance(query_df, bool) and query_df is False:
+            return False
 
         # 保存到数据库
         if need_update_data:
@@ -193,12 +197,6 @@ class DataFetcher:
         """
         # 入参检查和处理
         adj_symbol, adj_start_date, adj_end_date, interval, query_method = self._prepare_params(symbol, start_date, end_date, interval, query_method)
-
-        # interval到period的映射，用于兼容akshare接口
-        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
-        if interval not in interval_map:
-            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
-        akshare_period = interval_map[interval]
 
         if query_method is None:
             raise ValueError(f"query_method不能为空")
@@ -325,13 +323,18 @@ class DataFetcher:
         """
         使用akshare获取A股或港股数据
         """
+        # interval到period的映射，用于兼容akshare接口
+        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
+        if period not in interval_map:
+            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {period}")
+        akshare_period = interval_map[period]
+        
         try:
-            import akshare as ak
             if symbol.endswith('.HK'):
-                query_df = ak.stock_hk_hist(symbol=symbol, period=period, 
+                query_df = ak.stock_hk_hist(symbol=symbol, period=akshare_period, 
                                     start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
             else:
-                query_df = ak.stock_zh_a_hist(symbol=symbol, period=period, 
+                query_df = ak.stock_zh_a_hist(symbol=symbol, period=akshare_period, 
                                         start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
             # 字段兼容
             query_df.rename(columns={
@@ -376,10 +379,10 @@ class DataFetcher:
         """
         # 从网上获取数据
         query_df = pd.DataFrame()
+        adj_end_date = (pd.to_datetime(adj_end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
         if query_method == 'akshare':
             # 查询前adj_end_date加1天，用于兼容akshare接口
-            adj_end_date = (pd.to_datetime(adj_end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
-            query_df = self._fetch_data_akshare(adj_symbol, adj_start_date, adj_end_date, akshare_period)
+            query_df = self._fetch_data_akshare(adj_symbol, adj_start_date, adj_end_date, interval)
             if isinstance(query_df, bool) and query_df is False:
                 return None
         elif query_method == 'yfinance':
@@ -406,7 +409,7 @@ class DataFetcher:
             # query_df增加一列入库时间戳，精确到秒
             query_df['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-            self.logger.info(f"获取了 {adj_symbol}@{query_df['Date'].min()} -> {query_df['Date'].max()} 的 {len(query_df)} 条数据")
+            self.logger.info(f"获取了 {adj_symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
         else:
             self.logger.warning(f"警告: {adj_symbol} 没有获取到数据")
 

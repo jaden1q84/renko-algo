@@ -52,19 +52,19 @@ class DataBase:
             cur = self.conn.execute(sql, (symbol, start_date, end_date))
             rows = cur.fetchall()
             if not rows:
-                self.logger.info(f"未查询到数据: symbol={symbol}, start_date={start_date}, end_date={end_date}, interval={interval}")
+                self.logger.warning(f"未查询到数据: symbol={symbol}, start_date={start_date}, end_date={end_date}, interval={interval}")
                 return None
             df = pd.DataFrame(rows, columns=["Date", "Open", "High", "Low", "Close", "Volume", "Turnover", "Timestamp"])
             df["Date"] = pd.to_datetime(df["Date"])
             df.set_index("Date", inplace=True)
             # 打印第1条记录和最后1条记录
-            self.logger.info(f"DB fetch结果第1条: {f"Date: {df.index[0]}；{df.iloc[0].to_dict()}"}")
-            self.logger.info(f"DB fetch结果最后1条: {f"Date: {df.index[-1]}；{df.iloc[-1].to_dict()}"}")
+            self.logger.debug(f"DB fetch结果第1条: {f"Date: {df.index[0]}；{df.iloc[0].to_dict()}"}")
+            self.logger.debug(f"DB fetch结果最后1条: {f"Date: {df.index[-1]}；{df.iloc[-1].to_dict()}"}")
             return df
 
     def insert(self, symbol, df, interval):
         if df.empty:
-            self.logger.error(f"插入数据为空: symbol={symbol}, interval={interval}")
+            self.logger.warning(f"插入数据为空: symbol={symbol}, interval={interval}")
             return
         
         with self.lock:
@@ -78,8 +78,8 @@ class DataBase:
                 for idx, row in df.iterrows()
             ]
             # 打印插入第1条记录和最后1条记录
-            self.logger.info(f"DB insert数据第1条: {f"Date: {df.index[0]} {df.iloc[0].to_dict()}"}")
-            self.logger.info(f"DB insert数据最后1条: {f"Date: {df.index[-1]} {df.iloc[-1].to_dict()}"}")
+            self.logger.debug(f"DB insert数据第1条: {f"Date: {df.index[0]} {df.iloc[0].to_dict()}"}")
+            self.logger.debug(f"DB insert数据最后1条: {f"Date: {df.index[-1]} {df.iloc[-1].to_dict()}"}")
             self.conn.executemany(sql, data)
             self.conn.commit() 
 
@@ -94,8 +94,8 @@ class DataBase:
                 for idx, row in df.iterrows()
             ]
             # 打印插入第1条记录和最后1条记录
-            self.logger.info(f"DB update数据第1条: {f"Date: {df.index[0]} {df.iloc[0].to_dict()}"}")
-            self.logger.info(f"DB update数据最后1条: {f"Date: {df.index[-1]} {df.iloc[-1].to_dict()}"}")
+            self.logger.debug(f"DB update数据第1条: {f"Date: {df.index[0]} {df.iloc[0].to_dict()}"}")
+            self.logger.debug(f"DB update数据最后1条: {f"Date: {df.index[-1]} {df.iloc[-1].to_dict()}"}")
             self.conn.executemany(sql, data)
             self.conn.commit()
 
@@ -107,7 +107,7 @@ class DataBase:
             cur = self.conn.execute(sql, (symbol,))
             result = cur.fetchone()
             if result is None:
-                self.logger.info(f"未找到股票数据: symbol={symbol}, interval={interval}")
+                self.logger.warning(f"未找到股票数据: symbol={symbol}, interval={interval}")
                 return None
             return result[0]
 
@@ -119,7 +119,7 @@ class DataBase:
             cur = self.conn.execute(sql, (symbol,))
             result = cur.fetchone()
             if result is None:
-                self.logger.info(f"未找到股票数据: symbol={symbol}, interval={interval}")
+                self.logger.warning(f"未找到股票数据: symbol={symbol}, interval={interval}")
                 return None
             return result[0]
 
@@ -129,7 +129,7 @@ class DataBase:
             cur = self.conn.execute(sql, (symbol,))
             result = cur.fetchone()
             if result is None:
-                self.logger.info(f"未找到股票数据: symbol={symbol}")
+                self.logger.warning(f"未找到股票数据: symbol={symbol}")
                 return None
             return result[0]
         

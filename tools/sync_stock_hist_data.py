@@ -5,217 +5,48 @@ import pandas as pd
 from datetime import datetime, timedelta
 import akshare as ak
 import yfinance as yf
-from src.database import DataBase
+from src.data_fetcher import DataFetcher
 import json
 import argparse
 import concurrent.futures
+import logging
 
-QUERY_METHOD = 'yfinance'
-STOCK_HIST_DATA_DB = DataBase('data/stock_hist_data.db')
+# 配置日志
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S')
+logger = logging.getLogger(__name__)
 
-# 判断是否为工作日（A股/港股通用，周一到周五且非节假日）
-def is_workday(date_str):
-    date = pd.to_datetime(date_str)
-    # 周末不是工作日
-    if date.weekday() >= 5:
-        return False
-    # 可选：可扩展节假日判断（这里只判断周末）
-    return True
-
-# 获取最近的工作日（向前找）
-def get_nearest_workday_backward(date_str):
-    date = pd.to_datetime(date_str)
-    while not is_workday(date.strftime('%Y-%m-%d')):
-        date -= timedelta(days=1)
-    return date.strftime('%Y-%m-%d') 
-
-# 获取最近的工作日（向后找）
-def get_nearest_workday_forward(date_str):
-    date = pd.to_datetime(date_str)
-    while not is_workday(date.strftime('%Y-%m-%d')):
-        date += timedelta(days=1)
-    return date.strftime('%Y-%m-%d')
-
-def get_db_first_date(symbol, interval='1d'):
+def sync_one_stock_hist_data(symbol, start_date, end_date, interval='1d', query_method='yfinance'):
     """
-    获取第一条数据日期
+    同步一只股票的历史数据
     """
-    db_first_date = STOCK_HIST_DATA_DB.get_first_date(symbol, interval)
-    if db_first_date is None:
-        return None
-    else:
-        return pd.to_datetime(db_first_date)
+    data_fetcher = DataFetcher()
+    return data_fetcher.prepare_db_data(symbol, start_date, end_date, interval, query_method)
 
-def get_db_last_date(symbol, interval='1d'):
+def sync_stocks_hist_data(symbol_list, start_date, end_date, interval='1d', query_method='yfinance', threads=1):
     """
-    检查最后一条数据日期
+    同步多个股票历史数据，支持多线程
     """
-    db_last_date = STOCK_HIST_DATA_DB.get_last_date(symbol, interval)
-    if db_last_date is None:
-        return None
-    else:
-        return pd.to_datetime(db_last_date)
-
-def get_one_stock_hist_data(symbol, start_date, end_date, interval='1d', query_method=QUERY_METHOD):
-    """
-    获取一只股票的历史数据
-    """
-    try:
-        query_df = pd.DataFrame()
-        if pd.to_datetime(start_date) > pd.to_datetime(end_date):
-            print(f"开始日期{start_date}不能大于结束日期{end_date}")
-            return query_df
-        
-        # 如果end_date不是工作日，则调整为最近一个工作日
-        if not is_workday(end_date):
-            new_end_date = get_nearest_workday_backward(end_date)
-            print(f"end_date不是工作日，调整为最近一个工作日: {end_date} -> {new_end_date}")
-            end_date = new_end_date
-
-        # 如果start_date不是工作日，则调整为最近一个工作日
-        if not is_workday(start_date):
-            new_start_date = get_nearest_workday_forward(start_date)
-            print(f"start_date不是工作日，调整为最近一个工作日: {start_date} -> {new_start_date}")
-            start_date = new_start_date
-
-        db_start_date = get_db_first_date(symbol, interval)
-        db_end_date = get_db_last_date(symbol, interval)
-
-        if db_start_date is not None and db_end_date is not None:
-            print(f"股票{symbol}最新历史数据范围: {db_start_date.strftime('%Y-%m-%d')} -> {db_end_date.strftime('%Y-%m-%d')}")
-            if db_start_date > pd.to_datetime(end_date):
-                end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d') # ok
-            elif db_end_date < pd.to_datetime(start_date):
-                start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d') # ok
-            elif pd.to_datetime(start_date) < db_start_date and db_start_date < pd.to_datetime(end_date):
-                end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d')
-            elif pd.to_datetime(start_date) < db_end_date and db_end_date < pd.to_datetime(end_date):
-                start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d')
-            elif pd.to_datetime(start_date) >= db_start_date and db_end_date >= pd.to_datetime(end_date):
-                return query_df
-            print(f"[TODO]股票{symbol}的历史数据: {start_date} -> {end_date}")
-        else:
-            print(f"股票{symbol}没有历史数据，从{start_date}到{end_date}获取数据")
-
-        # interval到period的映射
-        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
-        if interval not in interval_map:
-            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {interval}")
-        period = interval_map[interval]  
-        
-        query_start_date = start_date
-        query_end_date = (pd.to_datetime(end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
-        print(f"\n*************使用{query_method}获取{symbol}: {query_start_date} -> {query_end_date}的数据")
-
-        # 获取历史数据
-        if query_method == 'akshare':
-            try:
-                if symbol.endswith('.HK'):
-                    query_df = ak.stock_hk_hist(symbol=symbol.split('.')[0], period=period, 
-                                    start_date=query_start_date.replace('-', ''), end_date=query_end_date.replace('-', ''), adjust="qfq")
-                else:
-                    query_df = ak.stock_zh_a_hist(symbol=symbol.split('.')[0], period=period, 
-                                        start_date=query_start_date.replace('-', ''), end_date=query_end_date.replace('-', ''), adjust="qfq")
-                # 字段兼容
-                query_df.rename(columns={
-                    '日期': 'Date',
-                    '开盘': 'Open',
-                    '收盘': 'Close',
-                    '最高': 'High',
-                    '最低': 'Low',
-                    '成交量': 'Volume',
-                    '成交额': 'Turnover',
-                }, inplace=True)
-            except Exception as e:
-                print(f"使用akshare获取{symbol}数据失败: {str(e)}")
-                return pd.DataFrame()
-        
-        elif query_method == 'yfinance':
-            try:
-                # 如果symbol不是.HK，则认为是A股，6开头需要补.SS结尾，否则补.SZ结尾
-                yf_symbol = symbol
-                if not symbol.endswith('.HK'):
-                    if symbol.startswith('6'):
-                        yf_symbol = f"{symbol}.SS"
-                    else:
-                        yf_symbol = f"{symbol}.SZ"
-                else:
-                    # 港股减掉第1个数字
-                    yf_symbol = symbol[1:]
-
-                ticker = yf.Ticker(yf_symbol)
-                query_df = ticker.history(start=query_start_date, end=query_end_date, interval=interval)
-            except Exception as e:
-                print(f"使用yfinance获取{symbol}数据失败: {str(e)}")
-                return pd.DataFrame()
-        else:
-            raise ValueError(f"不支持的query_method: {query_method}")
-        
-        if not query_df.empty:
-            if 'Date' not in query_df.columns:
-                query_df = query_df.reset_index()
-
-            # 保持DB兼容性，添加 Turnover 列，默认值为 -1
-            if 'Turnover' not in query_df.columns:
-                query_df['Turnover'] = -1
-
-            # Date列去掉时区，只保留日期
-            query_df['Date'] = query_df['Date'].dt.date
-            query_df['Date'] = pd.to_datetime(query_df['Date'])
-            query_df.set_index('Date', inplace=True)
-
-            print(f"获取了 {len(query_df)} 条数据")
-        else:
-            print(f"警告: {symbol} 没有获取到数据")
-
-        return query_df
-    except Exception as e:
-        print(f"获取{symbol}历史数据时发生错误: {str(e)}")
-        import traceback
-        print(f"详细错误信息: {traceback.format_exc()}")
-        return pd.DataFrame()
-
-def sync_stock_hist_data(symbol_list, start_date, end_date, interval='1d', query_method=QUERY_METHOD, threads=1):
-    """
-    同步股票历史数据，支持多线程
-    """
-    # 如果end_date不是工作日，则调整为最近一个工作日
-    if not is_workday(end_date):
-        new_end_date = get_nearest_workday_backward(end_date)
-        print(f"end_date不是工作日，调整为最近一个工作日: {end_date} -> {new_end_date}")
-        end_date = new_end_date
-
-    # 如果start_date不是工作日，则调整为最近一个工作日
-    if not is_workday(start_date):
-        new_start_date = get_nearest_workday_forward(start_date)
-        print(f"start_date不是工作日，调整为最近一个工作日: {start_date} -> {new_start_date}")
-        start_date = new_start_date
-    
     # 获取所有股票代码
     with open(symbol_list, 'r', encoding='utf-8') as f:
         symbol_list = json.load(f)
 
     def process_symbol(symbol):
         try:
-            print(f"同步{symbol}: {start_date} -> {end_date}的{interval}历史数据")
-            query_df = get_one_stock_hist_data(symbol, start_date, end_date, interval, query_method)
-            if query_df is not None and not query_df.empty:
-                STOCK_HIST_DATA_DB.insert(symbol, query_df, interval)
-            else:
-                print(f"警告: {symbol} 没有获取到数据")
+            logger.info(f"同步{symbol}: {start_date} -> {end_date}的{interval}历史数据")
+            sync_one_stock_hist_data(symbol, start_date, end_date, interval, query_method)
         except Exception as e:
-            print(f"处理symbol {symbol} 时出错: {str(e)}")
-            # 打印更详细的错误信息
             import traceback
-            print(f"详细错误信息: {traceback.format_exc()}")
+            logger.error(f"处理symbol {symbol} 时出错: {str(e)}，详细错误信息: {traceback.format_exc()}")
 
-    with concurrent.futures.ThreadPoolExecutor(max_threads=threads) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(process_symbol, symbol) for symbol in symbol_list]
         for future in concurrent.futures.as_completed(futures):
             try:
                 future.result()
             except Exception as e:
-                print(f"处理symbol时出错: {e}")
+                logger.error(f"处理symbol时出错: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='同步股票历史数据')
@@ -237,8 +68,6 @@ if __name__ == "__main__":
         args.end_date = datetime.now().strftime('%Y-%m-%d') 
 
     if args.symbol_list:
-        sync_stock_hist_data(args.symbol_list, args.start_date, args.end_date, args.interval, args.query_method, args.threads)
+        sync_stocks_hist_data(args.symbol_list, args.start_date, args.end_date, args.interval, args.query_method, args.threads)
     else:
-        query_df = get_one_stock_hist_data(args.symbol, args.start_date, args.end_date, args.interval, args.query_method)
-        if not query_df.empty:
-            STOCK_HIST_DATA_DB.insert(args.symbol, query_df, args.interval)
+        sync_one_stock_hist_data(args.symbol, args.start_date, args.end_date, args.interval, args.query_method)
