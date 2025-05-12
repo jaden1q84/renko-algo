@@ -127,7 +127,7 @@ class BacktestOptimizer:
                 'sell_trend_length': sell_trend_length,
                 'return': final_return,
                 'portfolio': portfolio,
-                'brick_size': 0,
+                'brick_size': None,
                 'last_signal': signals.iloc[-1].signal,
                 'last_signal_date': signals.iloc[-1].date.strftime('%Y-%m-%d'),
                 'last_price': renko_data.iloc[-1].close
@@ -198,16 +198,24 @@ class BacktestOptimizer:
         self.logger.info("========================最优参数组合=========================")
         self.logger.info(f"股票代码: {self.best_result['symbol']}")
         self.logger.info(f"模式: {self.best_result['mode']}")
-        if self.best_result['mode'] == 'atr':
-            self.logger.info(f"ATR周期: {self.best_result['atr_period']}")
-            self.logger.info(f"ATR倍数: {self.best_result['atr_multiplier']}")
         self.logger.info(f"买入趋势长度: {self.best_result['buy_trend_length']}")
         self.logger.info(f"卖出趋势长度: {self.best_result['sell_trend_length']}")
         self.logger.info(f"收益率: {self.best_result['return']:.2%}")
-        self.logger.info(f"砖型大小: {self.best_result['brick_size']:.2f}")
         self.logger.info(f"最后信号: {self.best_result['last_signal']}")
         self.logger.info(f"最后信号日期: {self.best_result['last_signal_date']}")
         self.logger.info(f"最后信号价格: {self.best_result['last_price']:.2f}")
+        if self.best_result['mode'] == 'atr':
+            self.logger.info(f"ATR周期: {self.best_result['atr_period']}")
+            self.logger.info(f"ATR倍数: {self.best_result['atr_multiplier']}")
+            self.logger.info(f"砖型大小: {self.best_result['brick_size']:.2f}")
+        
+        params_str = f"--symbol {self.best_result['symbol']} --start_date {self.best_result['start_date']} --end_date {self.best_result['end_date']} " + \
+                    f"--renko_mode {self.best_result['mode']} --atr_period {self.best_result['atr_period']} --atr_multiplier {self.best_result['atr_multiplier']} " + \
+                    f"--buy_trend_length {self.best_result['buy_trend_length']} --sell_trend_length {self.best_result['sell_trend_length']} "
+        if self.best_result['brick_size'] is not None:
+            params_str += f"--brick_size {self.best_result['brick_size']:.2f}"
+            
+        self.logger.info(f"运行参数: {params_str}")
         self.logger.info("===========================================================")
 
     def get_best_result(self) -> Dict:

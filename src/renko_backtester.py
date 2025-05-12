@@ -42,17 +42,6 @@ class RenkoBacktester:
         best_result = self.optimizer.get_best_result()
         best_result['symbol_name'] = self.symbol_name
         
-        self.logger.info("========================最优参数组合=========================")
-        self.logger.info(f"模式: {best_result['mode']}, ATR周期: {best_result['atr_period']}, ATR倍数: {best_result['atr_multiplier']}, "
-                    f"买入趋势长度: {best_result['buy_trend_length']}, 卖出趋势长度: {best_result['sell_trend_length']}\n"
-                    f"--symbol {best_result['symbol']} --start_date {best_result['start_date']} --end_date {best_result['end_date']} "
-                    f"--renko_mode {best_result['mode']} --atr_period {best_result['atr_period']} --atr_multiplier {best_result['atr_multiplier']} "
-                    f"--buy_trend_length {best_result['buy_trend_length']} --sell_trend_length {best_result['sell_trend_length']} --brick_size {best_result['brick_size']:.2f}")
-        self.logger.info(f"最后信号: {best_result['last_signal']}")
-        self.logger.info(f"最后信号日期: {best_result['last_signal_date']}")
-        self.logger.info(f"最后信号价格: {best_result['last_price']:.2f}")
-        self.logger.info("===========================================================")
-        
         return best_result
     
     def _run_standard_backtest(self, df):
