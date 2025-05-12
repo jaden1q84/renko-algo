@@ -123,9 +123,10 @@ class RenkoGenerator:
         """
         renko_data = []
         current_price = data['Close'].iloc[0]
-        if self.brick_size is None:
+        if self.brick_size is None or self.brick_size == 0:
             self.brick_size = self._calculate_atr(data)
             self.logger.info(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
+            raise ValueError("砖块大小不能为0") if self.brick_size == 0 else None
         else:
             self.logger.info(f"使用用户设置的砖块大小: {self.brick_size:.2f}")
             
