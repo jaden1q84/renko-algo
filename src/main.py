@@ -14,6 +14,7 @@ import logging
 import multiprocessing
 import sys
 from logger_config import setup_logger
+import glob
 
 # 确保logs目录存在
 os.makedirs('logs', exist_ok=True)
@@ -40,6 +41,8 @@ def parse_arguments():
     parser.add_argument('--workers', type=int, default=1, help='多进程数量，默认1')
     parser.add_argument('--save_data', action='store_true', help='是否保存中间Renko、portfolio等中间数据文件，默认不保存')
     parser.add_argument('--symbol_list', default=None, help='股票代码列表配置文件（JSON数组），如config/symbol_list.json')
+    parser.add_argument('--replace', action='store_true', help='是否替换已存在的文件，默认不替换')
+    
     args = parser.parse_args()
     if not args.symbol and not args.symbol_list:
         parser.error('必须指定 --symbol 或 --symbol_list 至少一个参数')
@@ -48,6 +51,20 @@ def parse_arguments():
     if args.end_date is None:
         args.end_date = datetime.now().strftime('%Y-%m-%d')
     return args
+
+def _check_result_file(symbol, args):
+    """检查结果文件是否存在"""
+    if args.replace:
+        return False
+    logger.info(f"检查结果文件是否存在: {symbol} {args.start_date} {args.end_date}")
+    output_dir = f"results/{datetime.now().strftime('%Y-%m-%d')}"
+    pattern = f"{output_dir}/*{symbol}*{args.start_date}*{args.end_date}.png"
+    logger.info(f"pattern: {pattern}")
+    matching_files = glob.glob(pattern)
+    if matching_files:
+        logger.info(f"[SKIP]结果文件已存在: {' , '.join(matching_files)}")
+        return True
+    return False
 
 def run_for_symbol(symbol, args):
     """单个股票的回测函数"""
@@ -58,12 +75,15 @@ def run_for_symbol(symbol, args):
         setup_logger(not enable_console) if batch_mode else None
         logger.info(f"[START]开始回测股票 {symbol}")
         
-        # 根据是否批量处理来配置日志
-        setup_logger(enable_console) if batch_mode else None
-
         args_copy = copy.deepcopy(args)
         args_copy.symbol = symbol
         
+        if _check_result_file(symbol, args_copy):
+            return
+        
+        # 根据是否批量处理来配置日志
+        setup_logger(enable_console) if batch_mode else None
+
         config = RenkoConfig()
         data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
         data_fetcher.init_stock_info()
