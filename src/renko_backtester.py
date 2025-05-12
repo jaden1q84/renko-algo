@@ -67,6 +67,9 @@ class RenkoBacktester:
                                  brick_size=params['brick_size'],
                                  save_data=getattr(self.args, 'save_data', False))
         renko_data = renko_gen.generate_renko(df)
+        if renko_data.empty:
+            self.logger.warning("砖型图数据为空，跳过此参数组合")
+            return
         params['brick_size'] = renko_gen.get_brick_size() if params['brick_size'] is None else params['brick_size']
         brick_size_str = "NA" if params['brick_size'] is None else f"{params['brick_size']:.2f}"
         
@@ -117,7 +120,7 @@ class RenkoBacktester:
 
     def plot_results(self):
         """绘制回测结果"""
-        if self.result is None:
+        if self.result is None or self.result['renko_data'].empty:
             self.logger.error("回测结果为空，请先运行回测试")
             return
 

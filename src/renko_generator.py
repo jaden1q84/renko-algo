@@ -125,6 +125,10 @@ class RenkoGenerator:
         current_price = data['Close'].iloc[0]
         if self.brick_size is None:
             self.brick_size = self._calculate_atr(data)
+            if self.brick_size == 0:
+                self.logger.warning("ATR计算的砖块大小为0")
+                self.renko_data = pd.DataFrame()
+                return self.renko_data
             self.logger.info(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
         else:
             self.logger.info(f"使用用户设置的砖块大小: {self.brick_size:.2f}")

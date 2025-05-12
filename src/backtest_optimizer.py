@@ -102,6 +102,9 @@ class BacktestOptimizer:
         renko_gen = RenkoGenerator(mode='daily', symbol=self.args.symbol, 
                                    save_data=getattr(self.args, 'save_data', False))
         renko_data = renko_gen.generate_renko(self.data)
+        if renko_data.empty:
+            self.logger.warning("砖型图数据为空，跳过此参数组合")
+            return
         
         # 运行策略
         strategy = RenkoStrategy(buy_trend_length=buy_trend_length, 
@@ -142,6 +145,10 @@ class BacktestOptimizer:
         renko_gen = RenkoGenerator(mode='atr', atr_period=atr_period, atr_multiplier=atr_multiplier,
                                  symbol=self.args.symbol, save_data=getattr(self.args, 'save_renko_data', False))
         renko_data = renko_gen.generate_renko(self.data)
+        if renko_data.empty:
+            self.logger.warning("砖型图数据为空，跳过此参数组合")
+            return
+        
         brick_size = renko_gen.get_brick_size()
         
         # 运行策略
