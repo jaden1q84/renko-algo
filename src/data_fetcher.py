@@ -92,6 +92,15 @@ class DataFetcher:
         if not self.use_db_cache:
             return None
         return self.db.fetch(symbol, start_date, end_date, interval)
+    
+    def _save_to_db_cache(self, symbol, df, interval, update=False):
+        """保存数据到数据库缓存"""
+        if not self.use_db_cache:
+            return
+        if update:
+            self.db.update(symbol, df, interval)
+        else:
+            self.db.insert(symbol, df, interval)
 
     def _get_from_file_cache(self, symbol, start_date, end_date, interval):
         """从文件缓存获取数据"""
@@ -141,7 +150,7 @@ class DataFetcher:
 
         # 保存到数据库
         if self.use_db_cache:
-            self.db.insert(symbol, query_df, interval)
+            self._save_to_db_cache(symbol, query_df, interval)
 
     def _get_db_first_date(self, symbol, interval='1d'):
         """
@@ -215,12 +224,8 @@ class DataFetcher:
 
         # 数据库中有数据不是最终收盘数据，检查记录的入库时间戳，标注要执行update动作。
         db_df = pd.DataFrame()
-        db_df = self.db.fetch(adj_symbol, adj_start_date, adj_end_date, interval)
-        if not db_df.empty:
-            for index, row in db_df.iterrows():
-                if row['Timestamp'] and pd.to_datetime(row['Timestamp']) < pd.to_datetime(f"{index} 16:15:00"): # 入库时间戳较收盘时间早，标记需要特殊处理，考虑港股要取16:15:00
-                    self.logger.info(f"[CHECK]股票{adj_symbol}数据库中存在{index}的盘中数据，入库时间戳为{row['Timestamp']}，较收盘时间早，标记需要特殊处理")
-                    need_update_data = True
+        db_df = self._get_from_db_cache(adj_symbol, adj_start_date, adj_end_date, interval)
+        need_update_data = self._check_db_record_timestamp(db_df, adj_symbol)
 
         # 开始检查数据库数据情况
         db_start_date = self._get_db_first_date(adj_symbol, interval)
@@ -229,17 +234,10 @@ class DataFetcher:
         # 检查数据库中是否包含start_date到end_date的数据
         if not need_update_data and db_start_date is not None and db_end_date is not None:
             self.logger.info(f"[CHECK]股票{adj_symbol}最新历史数据范围: {db_start_date.strftime('%Y-%m-%d')} -> {db_end_date.strftime('%Y-%m-%d')}")
-            if db_start_date > pd.to_datetime(adj_end_date):
-                adj_end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更早，则调整adj_end_date为数据库中数据段的前1天
-            elif db_end_date < pd.to_datetime(adj_start_date):
-                adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更晚，则调整adj_start_date为数据库中数据段的后1天
-            elif pd.to_datetime(adj_start_date) < db_start_date and db_start_date < pd.to_datetime(adj_end_date):
-                adj_end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更早，但有部分重叠，则调整adj_end_date为数据库中数据段的前1天
-            elif pd.to_datetime(adj_start_date) < db_end_date and db_end_date < pd.to_datetime(adj_end_date):
-                adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d') # ok，准备的数据比数据库中数据段更晚，但有部分重叠，则调整adj_start_date为数据库中数据段的后1天
-            elif pd.to_datetime(adj_start_date) >= db_start_date and db_end_date >= pd.to_datetime(adj_end_date):
+            if pd.to_datetime(adj_start_date) >= db_start_date and db_end_date >= pd.to_datetime(adj_end_date):
                 self.logger.info(f"[DONE]股票{adj_symbol}数据库中已包含 {adj_start_date} -> {adj_end_date} 的数据，数据就绪")
                 return False
+            adj_start_date, adj_end_date = self._adjust_date_range(adj_symbol, adj_start_date, adj_end_date, db_start_date, db_end_date)
     
         # 如果数据库中没有数据，则从网上获取数据
         self.logger.info(f"[TODO]: 数据库缺少股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据")
@@ -248,20 +246,18 @@ class DataFetcher:
         if isinstance(query_df, bool) and query_df is False:
             return False
         
+        # 处理查询结果兼容性
         query_df = self._process_query_result(query_df, adj_symbol, adj_start_date, adj_end_date, interval)
         if query_df is None:
             return False
 
         # 保存到数据库
-        if need_update_data:
-            self.db.update(adj_symbol, query_df, interval)
-        else:
-            self.db.insert(adj_symbol, query_df, interval)
+        self._save_to_db_cache(adj_symbol, query_df, interval, update=need_update_data)
         self.logger.info(f"[DONE]股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据已保存到数据库")
 
         # 保存到内存缓存，下次匹配直接获取
-        cache_key = f"{adj_symbol}_{adj_start_date}_{adj_end_date}_{interval}"
-        self.data_cache[cache_key] = query_df
+        cache_key = self._get_cache_key(adj_symbol, adj_start_date, adj_end_date, interval)
+        self._save_to_memory_cache(cache_key, query_df)
 
         return True
 
@@ -538,3 +534,47 @@ class DataFetcher:
         while not DataFetcher._is_workday(date.strftime('%Y-%m-%d')):
             date += timedelta(days=1)
         return date.strftime('%Y-%m-%d')
+
+    def _adjust_date_range(self, adj_symbol: str, adj_start_date: str, adj_end_date: str, db_start_date: datetime, db_end_date: datetime) -> tuple[str, str]:
+        """
+        根据数据库中的日期范围调整请求的日期范围
+        
+        Args:
+            adj_symbol: 股票代码
+            adj_start_date: 请求的开始日期
+            adj_end_date: 请求的结束日期
+            db_start_date: 数据库中的最早日期
+            db_end_date: 数据库中的最晚日期
+            
+        Returns:
+            tuple[str, str]: 调整后的开始日期和结束日期
+        """
+        if db_start_date > pd.to_datetime(adj_end_date):
+            adj_end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d')
+        elif db_end_date < pd.to_datetime(adj_start_date):
+            adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+        elif pd.to_datetime(adj_start_date) < db_start_date and db_start_date < pd.to_datetime(adj_end_date):
+            adj_end_date = (db_start_date - timedelta(days=1)).strftime('%Y-%m-%d')
+        elif pd.to_datetime(adj_start_date) < db_end_date and db_end_date < pd.to_datetime(adj_end_date):
+            adj_start_date = (db_end_date + timedelta(days=1)).strftime('%Y-%m-%d')
+            
+        return adj_start_date, adj_end_date
+
+    def _check_db_record_timestamp(self, db_df: pd.DataFrame, adj_symbol: str) -> bool:
+        """
+        检查数据库中的记录时间戳，判断是否需要更新数据
+        
+        Args:
+            db_df: 数据库查询结果DataFrame
+            adj_symbol: 股票代码
+            
+        Returns:
+            bool: 是否需要更新数据
+        """
+        need_update_data = False
+        if not db_df.empty:
+            for index, row in db_df.iterrows():
+                if row['Timestamp'] and pd.to_datetime(row['Timestamp']) < pd.to_datetime(f"{index} 16:15:00"): # 入库时间戳较收盘时间早，标记需要特殊处理，考虑港股要取16:15:00
+                    self.logger.info(f"[CHECK]股票{adj_symbol}数据库中存在{index}的盘中数据，入库时间戳为{row['Timestamp']}，较收盘时间早，标记需要特殊处理")
+                    need_update_data = True
+        return need_update_data
