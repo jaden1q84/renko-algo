@@ -198,7 +198,7 @@ class RenkoPlotter:
                 if signal['signal'] != 0:
                     action = "Buy" if signal['signal'] == 1 else "Sell"
 
-        output_dir = f"{self.output_dir}"
+        output_dir = f"{self.output_dir}/{datetime.now().strftime('%Y-%m-%d')}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         file_name = f"[{action}]{self.symbol}-{self.symbol_name}-{self.start_date}-{self.end_date}.png"
