@@ -9,6 +9,7 @@ import akshare as ak
 import json
 import logging
 from src.database import DataBase
+from typing import Optional, Dict, List, Union, Tuple, Any
 
 class DataFetcher:
     # 配置常量
@@ -17,7 +18,8 @@ class DataFetcher:
     DEFAULT_CACHE_DIR = 'data'
     DEFAULT_QUERY_METHOD = 'yfinance'
     
-    def __init__(self, cache_dir=DEFAULT_CACHE_DIR, use_db_cache=True, use_csv_cache=False, query_method=DEFAULT_QUERY_METHOD):
+    def __init__(self, cache_dir: str = DEFAULT_CACHE_DIR, use_db_cache: bool = True, 
+                 use_csv_cache: bool = False, query_method: str = DEFAULT_QUERY_METHOD) -> None:
         """
         初始化数据获取器
         
@@ -27,14 +29,14 @@ class DataFetcher:
             use_csv_cache (bool): 是否使用本地csv缓存
             query_method (str): 数据源方式
         """
-        self.data_cache = {}
-        self.symbol_info_db = {}
-        self.use_db_cache = use_db_cache
-        self.use_csv_cache = use_csv_cache
-        self.query_method = query_method
+        self.data_cache: Dict[str, pd.DataFrame] = {}
+        self.symbol_info_db: Dict[str, str] = {}
+        self.use_db_cache: bool = use_db_cache
+        self.use_csv_cache: bool = use_csv_cache
+        self.query_method: str = query_method
         
         # 创建缓存目录
-        self.cache_dir = cache_dir
+        self.cache_dir: str = cache_dir
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         
@@ -42,23 +44,23 @@ class DataFetcher:
         self._init_file_paths()
         
         # 初始化数据库和日志
-        self.db = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
-        self.logger = logging.getLogger(__name__)
+        self.db: DataBase = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
+        self.logger: logging.Logger = logging.getLogger(__name__)
             
-    def _init_file_paths(self):
+    def _init_file_paths(self) -> None:
         """初始化所有文件路径"""
-        self.FILE_STOCK_INFO_SH = os.path.join(self.cache_dir, "stock_info_sh.csv")
-        self.FILE_STOCK_INFO_SH_KCB = os.path.join(self.cache_dir, "stock_info_sh_kcb.csv")
-        self.FILE_STOCK_INFO_SZ = os.path.join(self.cache_dir, "stock_info_sz.csv")
-        self.FILE_STOCK_INFO_HK = os.path.join(self.cache_dir, "stock_info_hk.csv")
-        self.FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(self.cache_dir, "stock_info_ah_symbol_name.csv")
-        self.FILE_STOCK_AH_SYMBOLS_ALL = os.path.join(self.cache_dir, "stock_ah_symbols_all.json")
+        self.FILE_STOCK_INFO_SH: str = os.path.join(self.cache_dir, "stock_info_sh.csv")
+        self.FILE_STOCK_INFO_SH_KCB: str = os.path.join(self.cache_dir, "stock_info_sh_kcb.csv")
+        self.FILE_STOCK_INFO_SZ: str = os.path.join(self.cache_dir, "stock_info_sz.csv")
+        self.FILE_STOCK_INFO_HK: str = os.path.join(self.cache_dir, "stock_info_hk.csv")
+        self.FILE_STOCK_INFO_AH_CODE_NAME: str = os.path.join(self.cache_dir, "stock_info_ah_symbol_name.csv")
+        self.FILE_STOCK_AH_SYMBOLS_ALL: str = os.path.join(self.cache_dir, "stock_ah_symbols_all.json")
         
-    def _get_cache_filename(self, symbol, start_date, end_date, interval):
+    def _get_cache_filename(self, symbol: str, start_date: str, end_date: str, interval: str) -> str:
         """生成缓存文件名"""
         return os.path.join(self.cache_dir, f"{symbol}_{start_date}_{end_date}_{interval}.csv")
         
-    def _load_from_cache(self, cache_file):
+    def _load_from_cache(self, cache_file: str) -> Optional[pd.DataFrame]:
         """从缓存文件加载数据"""
         if os.path.exists(cache_file):
             try:
@@ -68,32 +70,32 @@ class DataFetcher:
                 self.logger.error(f"读取缓存文件失败: {str(e)}")
         return None
         
-    def _save_to_cache(self, df, cache_file):
+    def _save_to_cache(self, df: pd.DataFrame, cache_file: str) -> None:
         """保存数据到缓存文件"""
         try:
             df.to_csv(cache_file)
         except Exception as e:
             self.logger.error(f"保存缓存文件失败: {str(e)}")
 
-    def _get_cache_key(self, symbol, start_date, end_date, interval):
+    def _get_cache_key(self, symbol: str, start_date: str, end_date: str, interval: str) -> str:
         """生成缓存键"""
         return f"{symbol}_{start_date}_{end_date}_{interval}"
 
-    def _get_from_memory_cache(self, cache_key):
+    def _get_from_memory_cache(self, cache_key: str) -> Optional[pd.DataFrame]:
         """从内存缓存获取数据"""
         return self.data_cache.get(cache_key)
 
-    def _save_to_memory_cache(self, cache_key, df):
+    def _save_to_memory_cache(self, cache_key: str, df: pd.DataFrame) -> None:
         """保存数据到内存缓存"""
         self.data_cache[cache_key] = df
 
-    def _get_from_db_cache(self, symbol, start_date, end_date, interval):
+    def _get_from_db_cache(self, symbol: str, start_date: str, end_date: str, interval: str) -> Optional[pd.DataFrame]:
         """从数据库缓存获取数据"""
         if not self.use_db_cache:
             return None
         return self.db.fetch(symbol, start_date, end_date, interval)
     
-    def _save_to_db_cache(self, symbol, df, interval, update=False):
+    def _save_to_db_cache(self, symbol: str, df: pd.DataFrame, interval: str, update: bool = False) -> None:
         """保存数据到数据库缓存"""
         if not self.use_db_cache:
             return
@@ -102,14 +104,15 @@ class DataFetcher:
         else:
             self.db.insert(symbol, df, interval)
 
-    def _get_from_file_cache(self, symbol, start_date, end_date, interval):
+    def _get_from_file_cache(self, symbol: str, start_date: str, end_date: str, interval: str) -> Optional[pd.DataFrame]:
         """从文件缓存获取数据"""
         if not self.use_csv_cache:
             return None
         cache_file = self._get_cache_filename(symbol, start_date, end_date, interval)
         return self._load_from_cache(cache_file)
 
-    def _process_query_result(self, query_df, symbol, start_date, end_date, interval):
+    def _process_query_result(self, query_df: pd.DataFrame, symbol: str, start_date: str, 
+                            end_date: str, interval: str) -> Optional[pd.DataFrame]:
         """处理查询结果，统一数据格式"""
         if query_df.empty:
             self.logger.warning(f"警告: {symbol} 没有获取到数据")
@@ -134,7 +137,8 @@ class DataFetcher:
         self.logger.info(f"[DONE]获取了 {symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
         return query_df
 
-    def _save_query_result(self, query_df, symbol, start_date, end_date, interval):
+    def _save_query_result(self, query_df: pd.DataFrame, symbol: str, start_date: str, 
+                          end_date: str, interval: str) -> None:
         """保存查询结果到各种缓存"""
         if query_df is None or query_df.empty:
             return
@@ -152,7 +156,7 @@ class DataFetcher:
         if self.use_db_cache:
             self._save_to_db_cache(symbol, query_df, interval)
 
-    def _get_db_first_date(self, symbol, interval='1d'):
+    def _get_db_first_date(self, symbol: str, interval: str = '1d') -> Optional[datetime]:
         """
         获取第一条数据日期
         """
@@ -162,7 +166,7 @@ class DataFetcher:
         else:
             return pd.to_datetime(db_first_date)
 
-    def _get_db_last_date(self, symbol, interval='1d'):
+    def _get_db_last_date(self, symbol: str, interval: str = '1d') -> Optional[datetime]:
         """
         检查最后一条数据日期
         """
@@ -172,11 +176,11 @@ class DataFetcher:
         else:
             return pd.to_datetime(db_last_date)
         
-    def _prepare_params(self, symbol, start_date, end_date, interval):
+    def _prepare_params(self, symbol: str, start_date: str, end_date: Optional[str], 
+                       interval: str) -> Tuple[str, str, str, str]:
         """
         入参检查和处理
         """
-         # 入参检查和处理
         adj_symbol = symbol
         adj_start_date = start_date
         adj_end_date = end_date
@@ -208,7 +212,8 @@ class DataFetcher:
 
         return adj_symbol, adj_start_date, adj_end_date, interval
 
-    def prepare_db_data(self, symbol, start_date, end_date=None, interval='1d'):
+    def prepare_db_data(self, symbol: str, start_date: str, end_date: Optional[str] = None, 
+                       interval: str = '1d') -> bool:
         """
         根据参数准备数据库的数据，对比数据库和网络最新数据，并更新到数据库
         返回True表示数据库数据就绪，False标识失败。
@@ -261,7 +266,8 @@ class DataFetcher:
 
         return True
 
-    def get_historical_data(self, symbol, start_date, end_date=None, interval='1d'):
+    def get_historical_data(self, symbol: str, start_date: str, end_date: Optional[str] = None, 
+                           interval: str = '1d') -> Optional[pd.DataFrame]:
         """
         获取历史数据
         
@@ -310,7 +316,7 @@ class DataFetcher:
                 
         return None
 
-    def get_symbol_name(self, symbol):
+    def get_symbol_name(self, symbol: str) -> Optional[str]:
         """
         获取股票的基本信息
         
@@ -318,7 +324,7 @@ class DataFetcher:
             symbol (str): 股票代码
             
         Returns:
-            dict: 包含股票基本信息的字典，如果获取失败则返回None
+            str: 股票名称，如果获取失败则返回None
         """
         try:
             if not symbol.endswith('.HK'):
@@ -329,11 +335,10 @@ class DataFetcher:
             self.logger.error(f"获取股票信息时发生错误: {str(e)}")
             return None 
 
-    def init_stock_info(self):
+    def init_stock_info(self) -> None:
         """
         获取A股、科创板、深市、港股的股票信息，保存为csv和json文件。
         """
-
         self.logger.info("初始化股票信息")
 
         # 从数据库获取股票信息
@@ -389,7 +394,8 @@ class DataFetcher:
         with open(self.FILE_STOCK_AH_SYMBOLS_ALL, 'w', encoding='utf-8') as f:
             json.dump(all_df['symbol'].tolist(), f, ensure_ascii=False, indent=2) 
 
-    def _query_stock_data_from_net(self, adj_symbol, adj_start_date, adj_end_date, interval):
+    def _query_stock_data_from_net(self, adj_symbol: str, adj_start_date: str, adj_end_date: str, 
+                                  interval: str) -> Optional[pd.DataFrame]:
         """
         从网络获取股票数据
         
@@ -422,7 +428,8 @@ class DataFetcher:
             self.logger.error(f"获取股票数据失败: {str(e)}")
             return None
 
-    def _fetch_data_akshare(self, symbol, start_date, end_date, period):
+    def _fetch_data_akshare(self, symbol: str, start_date: str, end_date: str, 
+                           period: str) -> Union[pd.DataFrame, bool]:
         """
         使用akshare获取A股或港股数据
         
@@ -475,7 +482,8 @@ class DataFetcher:
             self.logger.error(f"使用akshare获取{symbol}数据失败: {str(e)}")
             return False
 
-    def _fetch_data_yfinance(self, symbol, start_date, end_date, interval):
+    def _fetch_data_yfinance(self, symbol: str, start_date: str, end_date: str, 
+                            interval: str) -> Union[pd.DataFrame, bool]:
         """
         使用yfinance获取A股或港股数据
         
@@ -497,7 +505,7 @@ class DataFetcher:
             self.logger.error(f"使用yfinance获取{symbol}数据失败: {str(e)}")
             return False
             
-    def _convert_to_yfinance_symbol(self, symbol):
+    def _convert_to_yfinance_symbol(self, symbol: str) -> str:
         """
         将股票代码转换为yfinance格式
         
@@ -515,27 +523,28 @@ class DataFetcher:
             return f"{symbol}.SZ"
 
     @staticmethod
-    def _is_workday(date_str):
+    def _is_workday(date_str: str) -> bool:
         date = pd.to_datetime(date_str)
         if date.weekday() >= 5:
             return False
         return True
 
     @staticmethod
-    def _get_nearest_workday_backward(date_str):
+    def _get_nearest_workday_backward(date_str: str) -> str:
         date = pd.to_datetime(date_str)
         while not DataFetcher._is_workday(date.strftime('%Y-%m-%d')):
             date -= timedelta(days=1)
         return date.strftime('%Y-%m-%d')
 
     @staticmethod
-    def _get_nearest_workday_forward(date_str):
+    def _get_nearest_workday_forward(date_str: str) -> str:
         date = pd.to_datetime(date_str)
         while not DataFetcher._is_workday(date.strftime('%Y-%m-%d')):
             date += timedelta(days=1)
         return date.strftime('%Y-%m-%d')
 
-    def _adjust_date_range(self, adj_symbol: str, adj_start_date: str, adj_end_date: str, db_start_date: datetime, db_end_date: datetime) -> tuple[str, str]:
+    def _adjust_date_range(self, adj_symbol: str, adj_start_date: str, adj_end_date: str, 
+                           db_start_date: datetime, db_end_date: datetime) -> Tuple[str, str]:
         """
         根据数据库中的日期范围调整请求的日期范围
         
