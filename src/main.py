@@ -56,10 +56,9 @@ def _check_result_file(symbol, args):
     """检查结果文件是否存在"""
     if args.replace:
         return False
-    logger.info(f"检查结果文件是否存在: {symbol} {args.start_date} {args.end_date}")
+    logger.info(f"[CHECK]检查结果文件是否存在: {symbol} {args.start_date} {args.end_date}")
     output_dir = f"results/{datetime.now().strftime('%Y-%m-%d')}"
     pattern = f"{output_dir}/*{symbol}*{args.start_date}*{args.end_date}.png"
-    logger.info(f"pattern: {pattern}")
     matching_files = glob.glob(pattern)
     if matching_files:
         logger.info(f"[SKIP]结果文件已存在: {' , '.join(matching_files)}")
