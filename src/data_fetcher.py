@@ -182,7 +182,7 @@ class DataFetcher:
 
         return True
 
-    def get_historical_data(self, symbol, start_date, end_date=None, interval='1d', query_method=None):
+    def get_historical_data(self, symbol, start_date, end_date=None, interval='1d', query_method="yfinance"):
         """
         获取历史数据
         

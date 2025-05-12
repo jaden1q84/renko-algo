@@ -188,7 +188,7 @@ class RenkoPlotter:
         # 获取最近N天的信号
         action = "NA"
 
-        # 最终受益大于15%才标记买卖信号
+        # 最终受益大于X%才标记买卖信号
         value = self.portfolio_value.iloc[-1]['total']
         initial_value = self.portfolio_value['total'].iloc[0]
         ratio = (value / initial_value - 1) * 100
