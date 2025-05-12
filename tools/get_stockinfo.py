@@ -61,7 +61,7 @@ def fetch_and_save_stock_info():
     all_df.to_csv(FILE_STOCK_INFO_AH_CODE_NAME, index=False)
 
     # 保存到数据库
-    STOCK_HIST_DATA_DB.insert_stock_info(all_df)
+    STOCK_HIST_DATA_DB.update_stock_info(all_df)
 
     # code单独保存为json
     with open(FILE_STOCK_AH_SYMBOLS_ALL, 'w', encoding='utf-8') as f:
