@@ -11,7 +11,13 @@ import logging
 from src.database import DataBase
 
 class DataFetcher:
-    def __init__(self, cache_dir='data', use_db_cache=True, use_csv_cache=False, query_method='yfinance'):
+    # 配置常量
+    SUPPORTED_INTERVALS = ['1d', '1wk', '1mo']
+    INTERVAL_TO_PERIOD_MAP = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
+    DEFAULT_CACHE_DIR = 'data'
+    DEFAULT_QUERY_METHOD = 'yfinance'
+    
+    def __init__(self, cache_dir=DEFAULT_CACHE_DIR, use_db_cache=True, use_csv_cache=False, query_method=DEFAULT_QUERY_METHOD):
         """
         初始化数据获取器
         
@@ -26,11 +32,21 @@ class DataFetcher:
         self.use_db_cache = use_db_cache
         self.use_csv_cache = use_csv_cache
         self.query_method = query_method
+        
         # 创建缓存目录
         self.cache_dir = cache_dir
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         
+        # 初始化文件路径
+        self._init_file_paths()
+        
+        # 初始化数据库和日志
+        self.db = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
+        self.logger = logging.getLogger(__name__)
+            
+    def _init_file_paths(self):
+        """初始化所有文件路径"""
         self.FILE_STOCK_INFO_SH = os.path.join(self.cache_dir, "stock_info_sh.csv")
         self.FILE_STOCK_INFO_SH_KCB = os.path.join(self.cache_dir, "stock_info_sh_kcb.csv")
         self.FILE_STOCK_INFO_SZ = os.path.join(self.cache_dir, "stock_info_sz.csv")
@@ -38,9 +54,6 @@ class DataFetcher:
         self.FILE_STOCK_INFO_AH_CODE_NAME = os.path.join(self.cache_dir, "stock_info_ah_symbol_name.csv")
         self.FILE_STOCK_AH_SYMBOLS_ALL = os.path.join(self.cache_dir, "stock_ah_symbols_all.json")
         
-        self.db = DataBase(os.path.join(self.cache_dir, 'stock_hist_data.db'))
-        self.logger = logging.getLogger(__name__)
-            
     def _get_cache_filename(self, symbol, start_date, end_date, interval):
         """生成缓存文件名"""
         return os.path.join(self.cache_dir, f"{symbol}_{start_date}_{end_date}_{interval}.csv")
@@ -61,6 +74,74 @@ class DataFetcher:
             df.to_csv(cache_file)
         except Exception as e:
             self.logger.error(f"保存缓存文件失败: {str(e)}")
+
+    def _get_cache_key(self, symbol, start_date, end_date, interval):
+        """生成缓存键"""
+        return f"{symbol}_{start_date}_{end_date}_{interval}"
+
+    def _get_from_memory_cache(self, cache_key):
+        """从内存缓存获取数据"""
+        return self.data_cache.get(cache_key)
+
+    def _save_to_memory_cache(self, cache_key, df):
+        """保存数据到内存缓存"""
+        self.data_cache[cache_key] = df
+
+    def _get_from_db_cache(self, symbol, start_date, end_date, interval):
+        """从数据库缓存获取数据"""
+        if not self.use_db_cache:
+            return None
+        return self.db.fetch(symbol, start_date, end_date, interval)
+
+    def _get_from_file_cache(self, symbol, start_date, end_date, interval):
+        """从文件缓存获取数据"""
+        if not self.use_csv_cache:
+            return None
+        cache_file = self._get_cache_filename(symbol, start_date, end_date, interval)
+        return self._load_from_cache(cache_file)
+
+    def _process_query_result(self, query_df, symbol, start_date, end_date, interval):
+        """处理查询结果，统一数据格式"""
+        if query_df.empty:
+            self.logger.warning(f"警告: {symbol} 没有获取到数据")
+            return None
+
+        # 重置索引，确保Date列存在
+        if 'Date' not in query_df.columns:
+            query_df = query_df.reset_index()
+
+        # 保持DB兼容性，添加 Turnover 列，默认值为 -1
+        if 'Turnover' not in query_df.columns:
+            query_df['Turnover'] = -1
+
+        # Date列去掉时区，只保留日期
+        query_df['Date'] = query_df['Date'].dt.date
+        query_df['Date'] = pd.to_datetime(query_df['Date'])
+        query_df.set_index('Date', inplace=True)
+
+        # 添加入库时间戳
+        query_df['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        self.logger.info(f"[DONE]获取了 {symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
+        return query_df
+
+    def _save_query_result(self, query_df, symbol, start_date, end_date, interval):
+        """保存查询结果到各种缓存"""
+        if query_df is None or query_df.empty:
+            return
+
+        # 保存到文件缓存
+        if self.use_csv_cache:
+            cache_file = self._get_cache_filename(symbol, start_date, end_date, interval)
+            self._save_to_cache(query_df, cache_file)
+
+        # 保存到内存缓存
+        cache_key = self._get_cache_key(symbol, start_date, end_date, interval)
+        self._save_to_memory_cache(cache_key, query_df)
+
+        # 保存到数据库
+        if self.use_db_cache:
+            self.db.insert(symbol, query_df, interval)
 
     def _get_db_first_date(self, symbol, interval='1d'):
         """
@@ -166,6 +247,10 @@ class DataFetcher:
         query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval)
         if isinstance(query_df, bool) and query_df is False:
             return False
+        
+        query_df = self._process_query_result(query_df, adj_symbol, adj_start_date, adj_end_date, interval)
+        if query_df is None:
+            return False
 
         # 保存到数据库
         if need_update_data:
@@ -188,52 +273,46 @@ class DataFetcher:
             symbol (str): 股票代码
             start_date (str): 开始日期，格式为'YYYY-MM-DD'
             end_date (str, optional): 结束日期，格式为'YYYY-MM-DD'，默认为今天
-            interval (str, optional): 数据间隔，可选值：'1d', '1wk', '1mo'（akshare不支持分钟级别）
+            interval (str, optional): 数据间隔，可选值：'1d', '1wk', '1mo'
         Returns:
             pd.DataFrame: 包含OHLCV数据的数据框
         """
-        # 入参检查和处理
+        # 参数预处理
         adj_symbol, adj_start_date, adj_end_date, interval = self._prepare_params(symbol, start_date, end_date, interval)
-        query_method = self.query_method
-
-        # 先检查内存缓存
-        cache_key = f"{adj_symbol}_{adj_start_date}_{adj_end_date}_{interval}"
-        if cache_key in self.data_cache:
-            return self.data_cache[cache_key]
-
-        # 检查数据库，从数据库返回
-        if self.use_db_cache:
-            self.logger.info(f"[CHECK]查询数据库中{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
-            db_df = pd.DataFrame()
-            db_df = self.db.fetch(adj_symbol, adj_start_date, adj_end_date, interval)
-            if not db_df.empty:
-                self.data_cache[cache_key] = db_df
-                return db_df
-            else:
-                self.logger.warning(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
-                return None
         
-        # 检查本地缓存，从本地缓存返回
-        csv_file = self._get_cache_filename(adj_symbol, adj_start_date, adj_end_date, interval)
-        if self.use_csv_cache:
-            csv_df = self._load_from_cache(csv_file)
-            if csv_df is not None:
-                self.data_cache[cache_key] = csv_df
-                return csv_df
-            else:
-                self.logger.warning(f"[CHECK]本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
-
-        # 如果前面都没有获取到数据，则从网上获取数据
-        self.logger.info(f"[TODO]: 数据库和本地缓存中没有股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据，使用{query_method}获取")
-        query_df = pd.DataFrame()
-        query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval, query_method)
-
-        # 保存到本地缓存和内存
-        if not query_df.empty:
-            self._save_to_cache(query_df, csv_file)
-            self.data_cache[cache_key] = query_df
+        # 生成缓存键
+        cache_key = self._get_cache_key(adj_symbol, adj_start_date, adj_end_date, interval)
+        
+        # 1. 检查内存缓存
+        if cached_df := self._get_from_memory_cache(cache_key):
+            return cached_df
             
-        return query_df
+        # 2. 检查数据库缓存
+        if db_df := self._get_from_db_cache(adj_symbol, adj_start_date, adj_end_date, interval):
+            if not db_df.empty:
+                self._save_to_memory_cache(cache_key, db_df)
+                return db_df
+            self.logger.warning(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+        
+        # 3. 检查文件缓存
+        if csv_df := self._get_from_file_cache(adj_symbol, adj_start_date, adj_end_date, interval):
+            if csv_df is not None:
+                self._save_to_memory_cache(cache_key, csv_df)
+                return csv_df
+            self.logger.warning(f"本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+        
+        # 4. 从网络获取数据
+        self.logger.info(f"[TODO]从网络获取股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据")
+        query_df = self._query_stock_data_from_net(adj_symbol, adj_start_date, adj_end_date, interval)
+        
+        # 5. 处理并保存查询结果
+        if query_df is not None:
+            processed_df = self._process_query_result(query_df, adj_symbol, adj_start_date, adj_end_date, interval)
+            if processed_df is not None:
+                self._save_query_result(processed_df, adj_symbol, adj_start_date, adj_end_date, interval)
+                return processed_df
+                
+        return None
 
     def get_symbol_name(self, symbol):
         """
@@ -314,23 +393,75 @@ class DataFetcher:
         with open(self.FILE_STOCK_AH_SYMBOLS_ALL, 'w', encoding='utf-8') as f:
             json.dump(all_df['symbol'].tolist(), f, ensure_ascii=False, indent=2) 
 
+    def _query_stock_data_from_net(self, adj_symbol, adj_start_date, adj_end_date, interval):
+        """
+        从网络获取股票数据
+        
+        Args:
+            adj_symbol (str): 处理后的股票代码
+            adj_start_date (str): 开始日期
+            adj_end_date (str): 结束日期
+            interval (str): 数据间隔
+            
+        Returns:
+            pd.DataFrame: 查询结果，如果失败返回None
+        """
+        # 调整结束日期，加1天以包含结束日期
+        adj_end_date = (pd.to_datetime(adj_end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        try:
+            if self.query_method == 'akshare':
+                query_df = self._fetch_data_akshare(adj_symbol, adj_start_date, adj_end_date, interval)
+            elif self.query_method == 'yfinance':
+                query_df = self._fetch_data_yfinance(adj_symbol, adj_start_date, adj_end_date, interval)
+            else:
+                raise ValueError(f"不支持的query_method: {self.query_method}")
+                
+            if isinstance(query_df, bool) and query_df is False:
+                return None
+                
+            return query_df
+            
+        except Exception as e:
+            self.logger.error(f"获取股票数据失败: {str(e)}")
+            return None
+
     def _fetch_data_akshare(self, symbol, start_date, end_date, period):
         """
         使用akshare获取A股或港股数据
+        
+        Args:
+            symbol (str): 股票代码
+            start_date (str): 开始日期
+            end_date (str): 结束日期
+            period (str): 数据周期
+            
+        Returns:
+            pd.DataFrame: 查询结果，如果失败返回False
         """
-        # interval到period的映射，用于兼容akshare接口
-        interval_map = {'1d': 'daily', '1wk': 'weekly', '1mo': 'monthly'}
-        if period not in interval_map:
-            raise ValueError(f"A/H股仅支持interval为'1d', '1wk', '1mo'，收到: {period}")
-        akshare_period = interval_map[period]
+        if period not in self.INTERVAL_TO_PERIOD_MAP:
+            raise ValueError(f"A/H股仅支持interval为{self.SUPPORTED_INTERVALS}，收到: {period}")
+            
+        akshare_period = self.INTERVAL_TO_PERIOD_MAP[period]
         
         try:
             if symbol.endswith('.HK'):
-                query_df = ak.stock_hk_hist(symbol=symbol, period=akshare_period, 
-                                    start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
+                query_df = ak.stock_hk_hist(
+                    symbol=symbol, 
+                    period=akshare_period,
+                    start_date=start_date.replace('-', ''), 
+                    end_date=end_date.replace('-', ''), 
+                    adjust="qfq"
+                )
             else:
-                query_df = ak.stock_zh_a_hist(symbol=symbol, period=akshare_period, 
-                                        start_date=start_date.replace('-', ''), end_date=end_date.replace('-', ''), adjust="qfq")
+                query_df = ak.stock_zh_a_hist(
+                    symbol=symbol, 
+                    period=akshare_period,
+                    start_date=start_date.replace('-', ''), 
+                    end_date=end_date.replace('-', ''), 
+                    adjust="qfq"
+                )
+                
             # 字段兼容
             query_df.rename(columns={
                 '日期': 'Date',
@@ -341,7 +472,9 @@ class DataFetcher:
                 '成交量': 'Volume',
                 '成交额': 'Turnover',
             }, inplace=True)
+            
             return query_df
+            
         except Exception as e:
             self.logger.error(f"使用akshare获取{symbol}数据失败: {str(e)}")
             return False
@@ -349,67 +482,41 @@ class DataFetcher:
     def _fetch_data_yfinance(self, symbol, start_date, end_date, interval):
         """
         使用yfinance获取A股或港股数据
+        
+        Args:
+            symbol (str): 股票代码
+            start_date (str): 开始日期
+            end_date (str): 结束日期
+            interval (str): 数据间隔
+            
+        Returns:
+            pd.DataFrame: 查询结果，如果失败返回False
         """
         try:
-            import yfinance as yf
-            yf_symbol = symbol
-            if not symbol.endswith('.HK'):
-                if symbol.startswith('6'):
-                    yf_symbol = f"{symbol}.SS"
-                else:
-                    yf_symbol = f"{symbol}.SZ"
-            else:
-                # 港股减掉第1个数字
-                yf_symbol = symbol[1:]
+            yf_symbol = self._convert_to_yfinance_symbol(symbol)
             ticker = yf.Ticker(yf_symbol)
-            query_df = ticker.history(start=start_date, end=end_date, interval=interval)
-            return query_df
+            return ticker.history(start=start_date, end=end_date, interval=interval)
+            
         except Exception as e:
             self.logger.error(f"使用yfinance获取{symbol}数据失败: {str(e)}")
             return False
+            
+    def _convert_to_yfinance_symbol(self, symbol):
+        """
+        将股票代码转换为yfinance格式
         
-    def _query_stock_data_from_net(self, adj_symbol, adj_start_date, adj_end_date, interval):
+        Args:
+            symbol (str): 原始股票代码
+            
+        Returns:
+            str: yfinance格式的股票代码
         """
-        查询股票数据
-        """
-        # 从网上获取数据
-        query_method = self.query_method
-        query_df = pd.DataFrame()
-        adj_end_date = (pd.to_datetime(adj_end_date) + timedelta(days=1)).strftime('%Y-%m-%d')
-        if query_method == 'akshare':
-            # 查询前adj_end_date加1天，用于兼容akshare接口
-            query_df = self._fetch_data_akshare(adj_symbol, adj_start_date, adj_end_date, interval)
-            if isinstance(query_df, bool) and query_df is False:
-                return None
-        elif query_method == 'yfinance':
-            query_df = self._fetch_data_yfinance(adj_symbol, adj_start_date, adj_end_date, interval)
-            if isinstance(query_df, bool) and query_df is False:
-                return None
+        if symbol.endswith('.HK'):
+            return symbol[1:]  # 港股减掉第1个数字
+        elif symbol.startswith('6'):
+            return f"{symbol}.SS"
         else:
-            raise ValueError(f"不支持的query_method: {query_method}")
-
-        # 数据兼容性处理，保证入库数据格式一致性        
-        if not query_df.empty:
-            if 'Date' not in query_df.columns:
-                query_df = query_df.reset_index()
-
-            # 保持DB兼容性，添加 Turnover 列，默认值为 -1
-            if 'Turnover' not in query_df.columns:
-                query_df['Turnover'] = -1
-
-            # Date列去掉时区，只保留日期
-            query_df['Date'] = query_df['Date'].dt.date
-            query_df['Date'] = pd.to_datetime(query_df['Date'])
-            query_df.set_index('Date', inplace=True)
-
-            # query_df增加一列入库时间戳，精确到秒
-            query_df['Timestamp'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-            self.logger.info(f"[DONE]获取了 {adj_symbol}@{query_df.index.min()} -> {query_df.index.max()} 的 {len(query_df)} 条数据")
-        else:
-            self.logger.warning(f"警告: {adj_symbol} 没有获取到数据")
-
-        return query_df
+            return f"{symbol}.SZ"
 
     @staticmethod
     def _is_workday(date_str):
