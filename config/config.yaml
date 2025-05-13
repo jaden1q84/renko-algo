@@ -13,8 +13,8 @@ backtest_config:
 # 优化参数设置
 optimization_parameters:
   atr_periods: [3, 5, 10, 15]          # ATR（平均真实波幅）周期的可选值
-  atr_multipliers: [0.5, 1.0, 2.0]     # ATR乘数的可选值
-  trend_lengths: [2, 3, 5]             # 趋势长度的可选值
+  atr_multipliers: [0.5, 0.7]     # ATR乘数的可选值
+  trend_lengths: [2, 3]             # 趋势长度的可选值
 
 # 数据源配置
 query_method: yfinance              # 数据源方式，可选值：akshare、yfinance
