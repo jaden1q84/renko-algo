@@ -1,25 +1,21 @@
 import argparse
-from datetime import datetime, timedelta
-from renko_backtester import RenkoBacktester
-from data_fetcher import DataFetcher
 import json
 import os
-import concurrent.futures
-from config import RenkoConfig
-from renko_plotter import RenkoPlotter
-import threading
-import time
+import glob
 import copy
 import logging
 import multiprocessing
 import sys
+from datetime import datetime, timedelta
+from concurrent.futures import ProcessPoolExecutor, wait
+from config import RenkoConfig
+from renko_backtester import RenkoBacktester
+from data_fetcher import DataFetcher
 from logger_config import setup_logger
-import glob
 
 # 确保logs目录存在
 os.makedirs('logs', exist_ok=True)
 
-# 配置根日志记录器
 logger = logging.getLogger(__name__)
 
 def parse_arguments():
@@ -28,8 +24,7 @@ def parse_arguments():
     parser.add_argument('--symbol', required=False, help='股票代码，例如：688041')
     parser.add_argument('--start_date', default=None, help='开始日期，格式：YYYY-MM-DD')
     parser.add_argument('--end_date', default=None, help='结束日期，格式：YYYY-MM-DD')
-    parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='atr', 
-                       help='Renko生成模式：atr（基于ATR）或daily（基于日线），默认atr')
+    parser.add_argument('--renko_mode', choices=['atr', 'daily'], default='atr', help='Renko生成模式：atr（基于ATR）或daily（基于日线），默认atr')
     parser.add_argument('--atr_period', type=int, default=10, help='ATR周期（仅当renko_mode=atr时有效）')
     parser.add_argument('--atr_multiplier', type=float, default=0.5, help='ATR乘数（仅当renko_mode=atr时有效）')
     parser.add_argument('--buy_trend_length', type=int, default=3, help='买入信号所需的趋势长度')
@@ -42,7 +37,7 @@ def parse_arguments():
     parser.add_argument('--save_data', action='store_true', help='是否保存中间Renko、portfolio等中间数据文件，默认不保存')
     parser.add_argument('--symbol_list', default=None, help='股票代码列表配置文件（JSON数组），如config/symbol_list.json')
     parser.add_argument('--replace', action='store_true', help='是否替换已存在的文件，默认不替换')
-    
+
     args = parser.parse_args()
     if not args.symbol and not args.symbol_list:
         parser.error('必须指定 --symbol 或 --symbol_list 至少一个参数')
@@ -52,7 +47,7 @@ def parse_arguments():
         args.end_date = datetime.now().strftime('%Y-%m-%d')
     return args
 
-def _check_result_file(symbol, args):
+def check_result_file(symbol, args):
     """检查结果文件是否存在"""
     if args.replace:
         return False
@@ -65,78 +60,66 @@ def _check_result_file(symbol, args):
         return True
     return False
 
-def run_for_symbol(symbol, args):
-    """单个股票的回测函数"""
+def run_single_backtest(symbol, args, batch_mode=False):
+    """单只股票回测流程"""
     try:
-        batch_mode = args.symbol_list is not None
-        enable_console = not batch_mode
-        
-        setup_logger(not enable_console) if batch_mode else None
+        # 日志配置：先输出第1条日志，然后批量模式下不输出到控制台
+        setup_logger()
         logger.info(f"[START]开始回测股票 {symbol}")
-        
+
         args_copy = copy.deepcopy(args)
         args_copy.symbol = symbol
-        
-        if _check_result_file(symbol, args_copy):
+
+        if check_result_file(symbol, args_copy):
             return
         
-        # 根据是否批量处理来配置日志
-        setup_logger(enable_console) if batch_mode else None
+        # 正式关闭批量处理的控制台日志
+        setup_logger(not batch_mode)
 
         config = RenkoConfig()
         data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
         data_fetcher.init_stock_info()
         logger.info("数据获取器初始化完成")
-        
         data_fetcher.prepare_db_data(args_copy.symbol, args_copy.start_date, args_copy.end_date)
 
         backtester = RenkoBacktester(args_copy, data_fetcher)
         backtester.run_backtest()
         result_path = backtester.plot_results()
         
-        setup_logger(not enable_console) if batch_mode else None
+        # 打开批量处理的控制台日志，输出结果
+        setup_logger()
         logger.info(f"[DONE]完成回测股票 {symbol}。结果保存到: {result_path}")
-        
     except Exception as e:
         logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
         raise
 
+def run_batch_backtest(symbol_list, args):
+    """批量回测流程"""
+    max_workers = args.workers
+    logger.info(f"使用 {max_workers} 个进程进行处理")
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(run_single_backtest, symbol, args, True) for symbol in symbol_list]
+        wait(futures)
+    logger.info("所有股票处理完成")
+
 def main():
-    """主函数"""
     try:
         args = parse_arguments()
-        setup_logger()
+        setup_logger()  # 主进程日志
         logger.info(f"程序启动，参数: {args}")
-        
-        if not args.symbol_list:
-            run_for_symbol(args.symbol, args)
-        else:
-            # 读取symbol_list.json
+
+        if args.symbol_list:
             logger.info(f"开始读取股票列表文件: {args.symbol_list}")
             with open(args.symbol_list, 'r', encoding='utf-8') as f:
                 symbol_list = json.load(f)
             logger.info(f"成功读取 {len(symbol_list)} 个股票代码")
-
-            # 使用多进程执行
-            max_workers = args.workers
-            logger.info(f"使用 {max_workers} 个进程进行处理")
-            
-            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
-                try:
-                    # 为每个symbol创建任务，传入args和data_fetcher
-                    futures = [executor.submit(run_for_symbol, symbol, args) 
-                             for symbol in symbol_list]
-                    # 等待所有任务完成
-                    concurrent.futures.wait(futures)
-                    logger.info("所有股票处理完成")
-                except Exception as e:
-                    logger.error(f"处理过程中发生错误: {str(e)}", exc_info=True)
-                    raise
+            run_batch_backtest(symbol_list, args)
+        else:
+            run_single_backtest(args.symbol, args)
     except Exception as e:
         logger.error(f"程序执行过程中发生错误: {str(e)}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":
-    # 设置多进程启动方法
     multiprocessing.set_start_method('spawn')
     main() 
