@@ -1,11 +1,11 @@
 import pandas as pd
 import numpy as np
-from typing import Literal
+from typing import Literal, Optional
 import logging
 
 class RenkoGenerator:
     def __init__(self, mode: Literal['daily', 'atr'] = 'atr', atr_period: int = 10, 
-                 atr_multiplier: float = 0.5, symbol: str = None, brick_size: float = None, 
+                 atr_multiplier: float = 0.5, symbol: Optional[str] = None, brick_size: Optional[float] = None, 
                  save_data: bool = False):
         """
         初始化砖型图生成器
@@ -22,10 +22,129 @@ class RenkoGenerator:
         self.atr_period = atr_period
         self.atr_multiplier = atr_multiplier
         self.symbol = symbol
-        self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
         self.brick_size = brick_size
         self.save_data = save_data
+        self.renko_data = pd.DataFrame(columns=['index', 'date', 'open', 'high', 'low', 'close', 'trend'])
         self.logger = logging.getLogger(__name__)
+        self._validate_params()
+
+    def _validate_params(self):
+        if self.mode not in ['daily', 'atr']:
+            raise ValueError("mode参数必须为 'daily' 或 'atr'")
+        if self.atr_period <= 0:
+            raise ValueError("atr_period 必须为正整数")
+        if self.atr_multiplier <= 0:
+            raise ValueError("atr_multiplier 必须为正数")
+        if self.brick_size is not None and self.brick_size <= 0:
+            raise ValueError("brick_size 必须为正数")
+
+    def generate_renko(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        生成砖型图数据
+        
+        Args:
+            data (pd.DataFrame): 原始K线数据
+            
+        Returns:
+            pd.DataFrame: 砖型图数据
+        """
+        if self.mode == 'daily':
+            self.renko_data = self._generate_renko(data, self._daily_brick_logic)
+        else:
+            if self.brick_size is None:
+                self.brick_size = self._calculate_atr(data)
+                if self.brick_size == 0:
+                    self.logger.warning("ATR计算的砖块大小为0")
+                    self.renko_data = pd.DataFrame()
+                    return self.renko_data
+                self.logger.info(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
+            else:
+                self.logger.info(f"使用用户设置的砖块大小: {self.brick_size:.2f}")
+            self.renko_data = self._generate_renko(data, self._atr_brick_logic)
+            if self.save_data:
+                self._save_data()
+        return self.renko_data
+
+    def _generate_renko(self, data: pd.DataFrame, brick_logic_func) -> pd.DataFrame:
+        """
+        通用砖型图生成主流程
+        """
+        renko_data = []
+        current_price = data['Close'].iloc[0]
+        index = 0
+        for i in range(1, len(data)):
+            bricks, current_price, index = brick_logic_func(data, i, current_price, index)
+            renko_data.extend(bricks)
+        # ATR模式下补最后一块不完整砖
+        if brick_logic_func == self._atr_brick_logic and renko_data:
+            self._append_incomplete_brick(data, renko_data, index)
+        return pd.DataFrame(renko_data)
+
+    def _daily_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int):
+        """
+        日K线模式下的砖块生成逻辑
+        """
+        price = data['Close'].iloc[i]
+        price_change = price - current_price
+        bricks = []
+        if price_change > 0:
+            bricks.append(self._make_brick(index, data.index[i], current_price, price, current_price, price, 1))
+            index += 1
+        elif price_change < 0:
+            bricks.append(self._make_brick(index, data.index[i], current_price, current_price, price, price, -1))
+            index += 1
+        return bricks, price, index
+
+    def _atr_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int):
+        """
+        ATR模式下的砖块生成逻辑
+        """
+        price = data['Close'].iloc[i]
+        price_change = price - current_price
+        bricks = []
+        num_bricks = abs(int(price_change / self.brick_size))
+        if num_bricks > 0:
+            direction = 1 if price_change > 0 else -1
+            for _ in range(num_bricks):
+                open_price = current_price
+                close_price = current_price + direction * self.brick_size
+                # 合并横盘砖块
+                if bricks and (close_price == bricks[-1]['open'] or close_price == bricks[-1]['close']):
+                    bricks.pop()
+                bricks.append(self._make_brick(index, data.index[i], open_price, max(open_price, close_price), min(open_price, close_price), close_price, direction))
+                current_price = close_price
+                index += 1
+        return bricks, current_price, index
+
+    def _append_incomplete_brick(self, data: pd.DataFrame, renko_data: list, index: int):
+        """
+        补充最后一块不完整砖（ATR模式专用）
+        """
+        last_brick_date = renko_data[-1]['date']
+        last_k_date = data.index[-1]
+        if last_brick_date != last_k_date:
+            last_brick_price = renko_data[-1]['close']
+            last_k_price = data['Close'].iloc[-1]
+            renko_data.append(self._make_brick(
+                index, last_k_date, last_brick_price,
+                max(last_brick_price, last_k_price),
+                min(last_brick_price, last_k_price),
+                last_k_price, 0
+            ))
+
+    def _make_brick(self, index, date, open_, high, low, close, trend):
+        """
+        统一砖块字典生成
+        """
+        return {
+            'index': index,
+            'date': date,
+            'open': open_,
+            'high': high,
+            'low': low,
+            'close': close,
+            'trend': trend
+        }
 
     def _calculate_atr(self, data: pd.DataFrame) -> float:
         """
@@ -50,165 +169,7 @@ class RenkoGenerator:
         
         return atr * self.atr_multiplier
         
-    def generate_renko(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        生成砖型图数据
-        
-        Args:
-            data (pd.DataFrame): 原始K线数据
-            
-        Returns:
-            pd.DataFrame: 砖型图数据
-        """
-        if self.mode == 'daily':
-            return self._generate_daily_renko(data)
-        else:
-            return self._generate_atr_renko(data)
-            
-    def _generate_daily_renko(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        基于日K线生成砖型图
-        
-        Args:
-            data (pd.DataFrame): 原始K线数据
-            
-        Returns:
-            pd.DataFrame: 砖型图数据
-        """
-        renko_data = []
-        current_price = data['Close'].iloc[0]
-        index = 0
-        
-        for i in range(1, len(data)):
-            price = data['Close'].iloc[i]
-            price_change = price - current_price
-            
-            if price_change > 0:
-                renko_data.append({
-                    'index': index,
-                    'date': data.index[i],
-                    'open': current_price,
-                    'high': price,
-                    'low': current_price,
-                    'close': price,
-                    'trend': 1  
-                })
-                index += 1
-            elif price_change < 0:
-                renko_data.append({
-                    'index': index,
-                    'date': data.index[i],
-                    'open': current_price,
-                    'high': current_price,
-                    'low': price,
-                    'close': price,
-                    'trend': -1
-                })
-                index += 1
-            
-            current_price = price
-                        
-        self.renko_data = pd.DataFrame(renko_data)
-        return self.renko_data
-        
-    def _generate_atr_renko(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        基于ATR生成砖型图
-        
-        Args:
-            data (pd.DataFrame): 原始K线数据
-            
-        Returns:
-            pd.DataFrame: 砖型图数据
-        """
-        renko_data = []
-        current_price = data['Close'].iloc[0]
-        if self.brick_size is None:
-            self.brick_size = self._calculate_atr(data)
-            if self.brick_size == 0:
-                self.logger.warning("ATR计算的砖块大小为0")
-                self.renko_data = pd.DataFrame()
-                return self.renko_data
-            self.logger.info(f"ATR计算的砖块大小为: {self.brick_size:.2f}")
-        else:
-            self.logger.info(f"使用用户设置的砖块大小: {self.brick_size:.2f}")
-            
-        index = 0
-
-        for i in range(1, len(data)):
-            price = data['Close'].iloc[i]
-            price_change = price - current_price
-            
-            # 计算需要多少个砖块
-            num_bricks = abs(int(price_change / self.brick_size))
-            
-            if num_bricks > 0:
-                direction = 1 if price_change > 0 else -1
-                for _ in range(num_bricks):
-                    if direction > 0:
-                        open_price = current_price
-                        close_price = current_price + self.brick_size
-                        current_price += self.brick_size
-                        
-                        # 合并横盘砖块
-                        if len(renko_data) > 0 and (close_price == renko_data[-1]['open'] or close_price == renko_data[-1]['close']):
-                            renko_data.pop()
-                        
-                        renko_data.append({
-                            'index': index,
-                            'date': data.index[i],
-                            'open': open_price,
-                            'high': close_price,
-                            'low': open_price,
-                            'close': close_price,
-                            'trend': 1
-                        })
-                        index += 1
-                    else:
-                        open_price = current_price
-                        close_price = current_price - self.brick_size
-                        current_price -= self.brick_size
-
-                        # 合并横盘砖块
-                        if len(renko_data) > 0 and (close_price == renko_data[-1]['open'] or close_price == renko_data[-1]['close']):
-                            renko_data.pop()
-                            
-                        renko_data.append({
-                            'index': index,
-                            'date': data.index[i],
-                            'open': open_price,
-                            'high': close_price,
-                            'low': open_price,
-                            'close': close_price,
-                            'trend': -1
-                        })
-                        index += 1
-
-        # 如果K线后几天的价格没形成1个砖块区间，就补一块不完整的砖，trend为0，不参与回测
-        if len(renko_data) > 0:
-            last_brick_date = renko_data[-1]['date']
-            last_k_date = data.index[-1]
-            if last_brick_date != last_k_date:
-                last_brick_price = renko_data[-1]['close']
-                last_k_price = data['Close'].iloc[-1]
-                renko_data.append({
-                    'index': index,
-                    'date': last_k_date,
-                    'open': last_brick_price,
-                    'high': last_k_price if last_k_price > last_brick_price else last_brick_price,
-                    'low': last_k_price if last_k_price < last_brick_price else last_brick_price,
-                    'close': last_k_price,
-                    'trend': 0
-                })
-                index += 1
-        
-        self.renko_data = pd.DataFrame(renko_data)
-
-        if self.save_data:
-            self._save_data()
-        return self.renko_data
-        
-    def get_brick_size(self) -> float:
+    def get_brick_size(self) -> Optional[float]:
         """
         获取当前砖块大小
         
@@ -224,8 +185,13 @@ class RenkoGenerator:
         if self.renko_data.empty or self.symbol is None:
             self.logger.warning("砖型图数据为空或未设置symbol，未保存文件。")
             return
-        start_date = self.renko_data.iloc[0]['date'].strftime('%Y-%m-%d')
-        end_date = self.renko_data.iloc[-1]['date'].strftime('%Y-%m-%d')
+        start_date = self.renko_data.iloc[0]['date']
+        end_date = self.renko_data.iloc[-1]['date']
+        # 兼容date为datetime或str
+        if hasattr(start_date, 'strftime'):
+            start_date = start_date.strftime('%Y-%m-%d')
+        if hasattr(end_date, 'strftime'):
+            end_date = end_date.strftime('%Y-%m-%d')
         file_name = f"data/{self.symbol}-renko_data-{start_date}-{end_date}.csv"
         self.renko_data.to_csv(file_name, index=False)
         self.logger.info(f"砖型图数据已保存至: {file_name}") 
