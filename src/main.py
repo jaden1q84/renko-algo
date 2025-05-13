@@ -51,7 +51,7 @@ def check_result_file(symbol, args):
     """检查结果文件是否存在"""
     if args.replace:
         return False
-    logger.info(f"[CHECK]检查结果文件是否存在: {symbol} {args.start_date} {args.end_date}")
+    logger.debug(f"[CHECK]检查结果文件是否存在: {symbol} {args.start_date} {args.end_date}")
     output_dir = f"results/{datetime.now().strftime('%Y-%m-%d')}"
     pattern = f"{output_dir}/*{symbol}*{args.start_date}*{args.end_date}.png"
     matching_files = glob.glob(pattern)

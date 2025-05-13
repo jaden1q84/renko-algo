@@ -9,6 +9,7 @@ import os
 import pandas as pd
 import threading
 from typing import Optional, Dict, Any
+import logging
 
 class RenkoPlotter:
     """
@@ -31,6 +32,9 @@ class RenkoPlotter:
         self.result: Optional[Dict[str, Any]] = None
         self.start_date: Optional[str] = None
         self.end_date: Optional[str] = None
+        
+        # 日志
+        self.logger = logging.getLogger(__name__)
 
         # 中文字体设置
         plt.rcParams['font.sans-serif'] = ['PingFang SC', 'sans-serif', 'Microsoft YaHei', 'SimHei', 'Heiti TC', 'Arial Unicode MS']
@@ -201,8 +205,18 @@ class RenkoPlotter:
         value = self.portfolio_value.iloc[-1]['total']
         initial_value = self.portfolio_value['total'].iloc[0]
         ratio = (value / initial_value - 1) * 100
+        
         if ratio > self.target_return:
-            recent_signals = self.signals.iloc[-self.recent_signal_days:]
+            # 获取最近N天的日期范围
+            last_date = pd.to_datetime(self.signals['date'].iloc[-1])  # 使用 iloc 而不是 [-1]
+            start_date = last_date - pd.Timedelta(days=self.recent_signal_days)
+            
+            # 筛选最近N天内的信号
+            recent_signals = self.signals[
+                (pd.to_datetime(self.signals['date']) >= start_date) & 
+                (pd.to_datetime(self.signals['date']) <= last_date)
+            ]
+                        
             for _, signal in recent_signals.iterrows():
                 if signal['signal'] != 0:
                     return "Buy" if signal['signal'] == 1 else "Sell"
