@@ -73,35 +73,33 @@ class RenkoGenerator:
         current_price = data['Close'].iloc[0]
         index = 0
         for i in range(1, len(data)):
-            bricks, current_price, index = brick_logic_func(data, i, current_price, index)
-            renko_data.extend(bricks)
+            current_price, index = brick_logic_func(data, i, current_price, index, renko_data)
+
         # ATR模式下补最后一块不完整砖
         if brick_logic_func == self._atr_brick_logic and renko_data:
             self._append_incomplete_brick(data, renko_data, index)
         return pd.DataFrame(renko_data)
 
-    def _daily_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int):
+    def _daily_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int, renko_data: list):
         """
         日K线模式下的砖块生成逻辑
         """
         price = data['Close'].iloc[i]
         price_change = price - current_price
-        bricks = []
         if price_change > 0:
-            bricks.append(self._make_brick(index, data.index[i], current_price, price, current_price, price, 1))
+            renko_data.append(self._make_brick(index, data.index[i], current_price, price, current_price, price, 1))
             index += 1
         elif price_change < 0:
-            bricks.append(self._make_brick(index, data.index[i], current_price, current_price, price, price, -1))
+            renko_data.append(self._make_brick(index, data.index[i], current_price, current_price, price, price, -1))
             index += 1
-        return bricks, price, index
+        return price, index
 
-    def _atr_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int):
+    def _atr_brick_logic(self, data: pd.DataFrame, i: int, current_price: float, index: int, renko_data: list):
         """
         ATR模式下的砖块生成逻辑
         """
         price = data['Close'].iloc[i]
         price_change = price - current_price
-        bricks = []
         num_bricks = abs(int(price_change / self.brick_size))
         if num_bricks > 0:
             direction = 1 if price_change > 0 else -1
@@ -109,12 +107,12 @@ class RenkoGenerator:
                 open_price = current_price
                 close_price = current_price + direction * self.brick_size
                 # 合并横盘砖块
-                if bricks and (close_price == bricks[-1]['open'] or close_price == bricks[-1]['close']):
-                    bricks.pop()
-                bricks.append(self._make_brick(index, data.index[i], open_price, max(open_price, close_price), min(open_price, close_price), close_price, direction))
+                if renko_data and (close_price == renko_data[-1]['open'] or close_price == renko_data[-1]['close']):
+                    renko_data.pop()
+                renko_data.append(self._make_brick(index, data.index[i], open_price, max(open_price, close_price), min(open_price, close_price), close_price, direction))
                 current_price = close_price
                 index += 1
-        return bricks, current_price, index
+        return current_price, index
 
     def _append_incomplete_brick(self, data: pd.DataFrame, renko_data: list, index: int):
         """

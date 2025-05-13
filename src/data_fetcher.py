@@ -289,21 +289,21 @@ class DataFetcher:
         cached_df = self._get_from_memory_cache(cache_key)
         if cached_df is not None and not cached_df.empty:
             return cached_df
-        self.logger.warning(f"内存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
+        self.logger.info(f"内存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据")
 
         # 2. 检查数据库缓存
         db_df = self._get_from_db_cache(adj_symbol, adj_start_date, adj_end_date, interval)
         if db_df is not None and not db_df.empty:
             self._save_to_memory_cache(cache_key, db_df)
             return db_df
-        self.logger.warning(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据") if self.use_db_cache else None
+        self.logger.info(f"数据库中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据") if self.use_db_cache else None
         
         # 3. 检查文件缓存
         csv_df = self._get_from_file_cache(adj_symbol, adj_start_date, adj_end_date, interval)
         if csv_df is not None and not csv_df.empty:
             self._save_to_memory_cache(cache_key, csv_df)
             return csv_df
-        self.logger.warning(f"本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据") if self.use_csv_cache else None
+        self.logger.info(f"本地缓存中没有{adj_symbol}@{adj_start_date} - {adj_end_date}的数据") if self.use_csv_cache else None
         
         # 4. 从网络获取数据
         self.logger.info(f"[TODO]从网络获取股票{adj_symbol}@{adj_start_date} -> {adj_end_date}的数据")
