@@ -6,3 +6,4 @@ backtrader>=1.9.76.123
 mplfinance>=0.12.9b7 
 pyyaml>=6.0.2
 akshare>=1.1.0
+pytest
