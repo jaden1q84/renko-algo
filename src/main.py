@@ -102,6 +102,22 @@ def run_batch_backtest(symbol_list, args):
         wait(futures)
     logger.info("所有股票处理完成")
 
+def remove_st_stock(symbol_list):
+    """删除ST股票"""
+    config = RenkoConfig()
+    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, 
+                               query_method=config.query_method)
+    data_fetcher.init_stock_info()
+    st_counter = 0
+    for symbol in symbol_list:
+        symbol_name = data_fetcher.get_symbol_name(symbol)
+        if symbol_name and (symbol_name.startswith('ST') or symbol_name.startswith('*ST')):
+            symbol_list.remove(symbol)
+            st_counter += 1
+    
+    logger.info(f"删除ST股票 {st_counter} 个")
+    return symbol_list
+
 def main():
     try:
         args = parse_arguments()
@@ -112,7 +128,8 @@ def main():
             logger.info(f"开始读取股票列表文件: {args.symbol_list}")
             with open(args.symbol_list, 'r', encoding='utf-8') as f:
                 symbol_list = json.load(f)
-            logger.info(f"成功读取 {len(symbol_list)} 个股票代码")
+            symbol_list = remove_st_stock(symbol_list)
+            logger.info(f"删除ST股票后剩余 {len(symbol_list)} 个股票代码")
             run_batch_backtest(symbol_list, args)
         else:
             run_single_backtest(args.symbol, args)
