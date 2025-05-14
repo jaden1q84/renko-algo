@@ -60,15 +60,17 @@ def check_result_file(symbol, args):
         return True
     return False
 
-def run_single_backtest(symbol, args, batch_mode=False):
+def run_single_backtest(symbol, symbol_name, args):
     """单只股票回测流程"""
     try:
+        batch_mode = True if args.symbol_list else False
         # 日志配置：先输出第1条日志，然后批量模式下不输出到控制台
         setup_logger()
-        logger.info(f"[START]开始回测股票 {symbol}")
+        logger.info(f"[START]开始回测股票 {symbol} {symbol_name}")
 
         args_copy = copy.deepcopy(args)
         args_copy.symbol = symbol
+        args_copy.symbol_name = symbol_name
 
         if check_result_file(symbol, args_copy):
             return
@@ -78,7 +80,6 @@ def run_single_backtest(symbol, args, batch_mode=False):
 
         config = RenkoConfig()
         data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, query_method=config.query_method)
-        data_fetcher.init_stock_info()
         logger.info("数据获取器初始化完成")
         data_fetcher.prepare_db_data(args_copy.symbol, args_copy.start_date, args_copy.end_date)
 
@@ -88,35 +89,43 @@ def run_single_backtest(symbol, args, batch_mode=False):
         
         # 打开批量处理的控制台日志，输出结果
         setup_logger()
-        logger.info(f"[DONE]完成回测股票 {symbol}。结果保存到: {result_path}")
+        logger.info(f"[DONE]完成回测股票 {symbol} {symbol_name}。结果保存到: {result_path}")
     except Exception as e:
-        logger.error(f"处理股票 {symbol} 时发生错误: {str(e)}", exc_info=True)
+        logger.error(f"处理股票 {symbol} {symbol_name} 时发生错误: {str(e)}", exc_info=True)
         raise
 
-def run_batch_backtest(symbol_list, args):
+def run_batch_backtest(symbol_list, symbol_name_map, args):
     """批量回测流程"""
     max_workers = args.workers
     logger.info(f"使用 {max_workers} 个进程进行处理")
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(run_single_backtest, symbol, args, True) for symbol in symbol_list]
+        futures = [executor.submit(run_single_backtest, symbol_list[i], symbol_name_map[symbol_list[i]], args) for i in range(len(symbol_list))]
         wait(futures)
     logger.info("所有股票处理完成")
 
-def remove_st_stock(symbol_list):
-    """删除ST股票"""
+def resolve_symbol_list(symbol_list):
+    """解析股票列表"""
+    config = RenkoConfig()
+    data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, 
+                               query_method=config.query_method)
+    symbol_name_map = data_fetcher.init_stock_info()
+
+    # 删除ST股票
+    new_symbol_list = [symbol for symbol in symbol_list 
+                       if not data_fetcher.get_symbol_name(symbol).startswith('ST') and 
+                       not data_fetcher.get_symbol_name(symbol).startswith('*ST')]
+    logger.info(f"删除ST股票后剩余 {len(symbol_list)} 个股票代码")
+
+    return new_symbol_list, symbol_name_map
+
+def resolve_symbol(symbol):
+    """解析股票"""
     config = RenkoConfig()
     data_fetcher = DataFetcher(use_db_cache=config.use_db_cache, use_csv_cache=config.use_csv_cache, 
                                query_method=config.query_method)
     data_fetcher.init_stock_info()
-    st_counter = 0
-    for symbol in symbol_list:
-        symbol_name = data_fetcher.get_symbol_name(symbol)
-        if symbol_name and (symbol_name.startswith('ST') or symbol_name.startswith('*ST')):
-            symbol_list.remove(symbol)
-            st_counter += 1
     
-    logger.info(f"删除ST股票 {st_counter} 个")
-    return symbol_list
+    return data_fetcher.get_symbol_name(symbol)
 
 def main():
     try:
@@ -128,11 +137,12 @@ def main():
             logger.info(f"开始读取股票列表文件: {args.symbol_list}")
             with open(args.symbol_list, 'r', encoding='utf-8') as f:
                 symbol_list = json.load(f)
-            symbol_list = remove_st_stock(symbol_list)
-            logger.info(f"删除ST股票后剩余 {len(symbol_list)} 个股票代码")
-            run_batch_backtest(symbol_list, args)
+            
+            new_symbol_list, symbol_name_map = resolve_symbol_list(symbol_list)
+            run_batch_backtest(new_symbol_list, symbol_name_map, args)
         else:
-            run_single_backtest(args.symbol, args)
+            symbol_name = resolve_symbol(args.symbol)
+            run_single_backtest(args.symbol, symbol_name, args)
     except Exception as e:
         logger.error(f"程序执行过程中发生错误: {str(e)}", exc_info=True)
         sys.exit(1)

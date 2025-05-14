@@ -337,9 +337,9 @@ class DataFetcher:
             self.logger.error(f"获取股票信息时发生错误: {str(e)}")
             return None 
 
-    def init_stock_info(self) -> None:
+    def init_stock_info(self) -> dict:
         """
-        获取A股、科创板、深市、港股的股票信息，保存为csv和json文件。
+        从数据库获取A股、科创板、深市、港股的股票信息，保存为csv和json文件。
         """
         self.logger.info("初始化股票信息")
 
@@ -348,53 +348,10 @@ class DataFetcher:
         if not stock_info_db.empty:
             self.symbol_info_db = dict(zip(stock_info_db['symbol'], stock_info_db['name']))
             self.logger.info(f"已从数据库加载stock_info_db = {len(self.symbol_info_db)}只股票信息")
-            return
-
-        if not os.path.exists(self.FILE_STOCK_INFO_SH):
-            stock_info_sh_df = ak.stock_info_sh_name_code(symbol="主板A股")
-            stock_info_sh_df["证券代码"] = stock_info_sh_df["证券代码"].astype(str)
-            stock_info_sh_df.to_csv(self.FILE_STOCK_INFO_SH, index=False)
         else:
-            stock_info_sh_df = pd.read_csv(self.FILE_STOCK_INFO_SH, dtype={"证券代码": str})
-
-        if not os.path.exists(self.FILE_STOCK_INFO_SH_KCB):
-            stock_info_sh_df_kcb = ak.stock_info_sh_name_code(symbol="科创板")
-            stock_info_sh_df_kcb["证券代码"] = stock_info_sh_df_kcb["证券代码"].astype(str)
-            stock_info_sh_df_kcb.to_csv(self.FILE_STOCK_INFO_SH_KCB, index=False)
-        else:
-            stock_info_sh_df_kcb = pd.read_csv(self.FILE_STOCK_INFO_SH_KCB, dtype={"证券代码": str})
-
-        if not os.path.exists(self.FILE_STOCK_INFO_SZ):
-            stock_info_sz_df = ak.stock_info_sz_name_code(symbol="A股列表")
-            stock_info_sz_df["A股代码"] = stock_info_sz_df["A股代码"].astype(str)
-            stock_info_sz_df.to_csv(self.FILE_STOCK_INFO_SZ, index=False)
-        else:
-            stock_info_sz_df = pd.read_csv(self.FILE_STOCK_INFO_SZ, dtype={"A股代码": str})
-
-        if not os.path.exists(self.FILE_STOCK_INFO_HK):
-            stock_info_hk_df = ak.stock_hk_spot_em()
-            stock_info_hk_df['代码'] = stock_info_hk_df['代码'].astype(str)
-            stock_info_hk_df.to_csv(self.FILE_STOCK_INFO_HK, index=False)
-        else:
-            stock_info_hk_df = pd.read_csv(self.FILE_STOCK_INFO_HK, dtype={"代码": str})
-
-        # 统一字段名
-        sh_df = stock_info_sh_df.rename(columns={"证券代码": "symbol", "证券简称": "name"})[["symbol", "name"]]
-        kcb_df = stock_info_sh_df_kcb.rename(columns={"证券代码": "symbol", "证券简称": "name"})[["symbol", "name"]]
-        sz_df = stock_info_sz_df.rename(columns={"A股代码": "symbol", "A股简称": "name"})[["symbol", "name"]]
-        hk_df = stock_info_hk_df.rename(columns={"代码": "symbol", "名称": "name"})[["symbol", "name"]]
-        hk_df['symbol'] = hk_df['symbol'].apply(lambda x: f"{x}.HK")
-
-        # 合并
-        all_df = pd.concat([sh_df, kcb_df, sz_df, hk_df], ignore_index=True)
-        all_df.to_csv(self.FILE_STOCK_INFO_AH_CODE_NAME, index=False)
-
-        # 保存到数据库
-        self.db.update_stock_info(all_df)
-
-        # code单独保存为json
-        with open(self.FILE_STOCK_AH_SYMBOLS_ALL, 'w', encoding='utf-8') as f:
-            json.dump(all_df['symbol'].tolist(), f, ensure_ascii=False, indent=2) 
+            self.logger.error("数据库中没有股票信息")
+        
+        return self.symbol_info_db
 
     def _query_stock_data_from_net(self, adj_symbol: str, adj_start_date: str, adj_end_date: str, 
                                   interval: str) -> Optional[pd.DataFrame]:

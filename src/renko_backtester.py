@@ -10,7 +10,7 @@ class RenkoBacktester:
     def __init__(self, args, data_fetcher):
         self.args = args
         self.fetcher = data_fetcher
-        self.symbol_name = None
+        self.symbol_name = args.symbol_name
         self.optimizer = None
         self.result = None
         self.config = RenkoConfig()
@@ -26,7 +26,6 @@ class RenkoBacktester:
             df = self._fetch_data()
             if df is None:
                 return
-            self.symbol_name = self.fetcher.get_symbol_name(self.args.symbol)
             self.logger.info(f"获取到{len(df)}条数据")
             self.logger.debug(f"股票信息: {self.symbol_name}")
 
