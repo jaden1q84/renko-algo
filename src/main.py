@@ -42,7 +42,7 @@ def parse_arguments():
     if not args.symbol and not args.symbol_list:
         parser.error('必须指定 --symbol 或 --symbol_list 至少一个参数')
     if args.start_date is None:
-        args.start_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
+        args.start_date = (datetime.now() - timedelta(days=90)).strftime('%Y-%m-%d')
     if args.end_date is None:
         args.end_date = datetime.now().strftime('%Y-%m-%d')
     return args
