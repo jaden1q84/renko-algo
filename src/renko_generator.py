@@ -118,16 +118,17 @@ class RenkoGenerator:
         """
         补充最后一块不完整砖（ATR模式专用）
         """
-        last_brick_date = renko_data[-1]['date']
-        last_k_date = data.index[-1]
-        if last_brick_date != last_k_date:
-            last_brick_price = renko_data[-1]['close']
-            last_k_price = data['Close'].iloc[-1]
+        last_brick_price = renko_data[-1]['close']
+        last_k_price = data['Close'].iloc[-1]
+
+        if last_brick_price != last_k_price:
+            last_k_date = data.index[-1]
             renko_data.append(self._make_brick(
                 index, last_k_date, last_brick_price,
                 max(last_brick_price, last_k_price),
                 min(last_brick_price, last_k_price),
-                last_k_price, 0
+                last_k_price, 
+                0       # 最后一块不完整块，趋势设置为0，不参与回测试
             ))
 
     def _make_brick(self, index, date, open_, high, low, close, trend):

@@ -40,7 +40,7 @@ python src/main.py --symbol 688041 --start_date 2023-01-01 --end_date 2023-12-31
 3. 参数说明：
 - `--symbol`: 股票代码（必需，与--symbol_list二选一），例如：688041
 - `--symbol_list`: 股票代码列表配置文件（JSON数组），如config/symbol_list.json（必需，与--symbol二选一）
-- `--start_date`: 开始日期（可选，默认取过去180天），格式：YYYY-MM-DD
+- `--start_date`: 开始日期（可选，默认取过去90天），格式：YYYY-MM-DD
 - `--end_date`: 结束日期（可选，默认取今天日期），格式：YYYY-MM-DD
 - `--renko_mode`: Renko生成模式（可选，默认atr），可选值：atr（基于ATR）或daily（基于日线）
 - `--atr_period`: ATR周期（可选，默认10，仅当renko_mode=atr时有效）
@@ -65,7 +65,7 @@ python src/main.py --symbol 688041 --optimize
 python src/main.py --symbol 00700.HK --optimize
 ```
 
-2. 默认回测（自动取过去180天，默认周期和趋势）：
+2. 默认回测（自动取过去90天，默认周期和趋势）：
 ```bash
 python src/main.py --symbol 688041
 ```
