@@ -14,7 +14,8 @@ logging.basicConfig(level=logging.INFO,
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-STOCK_HIST_DATA_DB = DataBase('data/stock_hist_data.db')
+# STOCK_HIST_DATA_DB = DataBase('data/stock_hist_data.db')
+STOCK_HIST_DATA_DB = None
 
 # 路径和文件名变量
 DATA_DIR = "data"
@@ -69,7 +70,7 @@ def fetch_and_save_stock_info(force=False):
     all_df = pd.concat([sh_df, kcb_df, sz_df, hk_df], ignore_index=True)
     all_df.to_csv(FILE_STOCK_INFO_AH_CODE_NAME, index=False)
 
-    logger.info(f"保存 {len(all_df)} 条股票信息到数据库: {FILE_STOCK_INFO_AH_CODE_NAME}")
+    logger.info(f"保存 {len(all_df)} 条股票信息到数据库及csv文件：{FILE_STOCK_INFO_AH_CODE_NAME}")
 
     # 保存到数据库
     STOCK_HIST_DATA_DB.update_stock_info(all_df)
@@ -81,6 +82,9 @@ def fetch_and_save_stock_info(force=False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="获取并保存股票信息")
     parser.add_argument('--force', action='store_true', help='强制更新所有数据')
+    parser.add_argument('--db-path', type=str, default='data/stock_hist_data.db', help='指定数据库文件路径，默认为data/stock_hist_data.db')
     args = parser.parse_args()
+
+    STOCK_HIST_DATA_DB = DataBase(args.db_path)
     fetch_and_save_stock_info(force=args.force)
 
